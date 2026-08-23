@@ -395,6 +395,17 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
                       <span className="badge" data-tone={STATUS_META[p.status]?.color || 'neutral'}>{p.status}</span>
                       {p.tcasFolio && <span className="badge" data-tone="accent">ใช้ TCASFolio</span>}
                       
+                      {p.applicationFee != null && p.applicationFee > 0 && (
+                        p.feePaid ? (
+                          <span className="badge" data-tone="success">✅ จ่ายค่าสมัครแล้ว</span>
+                        ) : (
+                          <>
+                            <span className="badge" data-tone="danger">❌ ยังไม่จ่ายค่าสมัคร ({p.applicationFee} ฿)</span>
+                            <button className="status-quick-btn" data-tone="success" onClick={() => handleToggleFeePaid(p.id, true)}>จ่ายแล้ว</button>
+                          </>
+                        )
+                      )}
+
                       {NEXT_STATUS[p.status]?.map(ns => (
                         <button key={ns} className="status-quick-btn" data-tone={STATUS_META[ns]?.color || 'neutral'} onClick={() => handleQuickStatus(p.id, ns)}>
                           {ns}
@@ -440,23 +451,6 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
                                 <span style={{ textDecoration: doc.done ? 'line-through' : 'none', color: doc.done ? 'var(--text-faint)' : 'inherit' }}>{doc.text}</span>
                               </label>
                             ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {p.applicationFee != null && (
-                        <div className="detail-section" style={{marginTop: 12}}>
-                          <h4 style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>ค่าสมัคร</h4>
-                          <div className="doc-item" data-done={p.feePaid}>
-                            <input
-                              type="checkbox"
-                              id={`fee-${p.id}`}
-                              checked={!!p.feePaid}
-                              onChange={(e) => handleToggleFeePaid(p.id, e.target.checked)}
-                            />
-                            <label htmlFor={`fee-${p.id}`}>
-                              {p.applicationFee.toLocaleString('th-TH')} บาท {p.feePaid ? '(จ่ายแล้ว)' : '(ยังไม่จ่าย)'}
-                            </label>
                           </div>
                         </div>
                       )}
