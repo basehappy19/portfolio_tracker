@@ -256,17 +256,17 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
   return (
     <div className="app">
       <header className="topbar">
-        <div className="topbar-inner">
-          <div className="brand">
-            <span className="brand-mark">T</span>
+        <div className="topbar-inner !py-2.5 !px-4 sm:!py-4 sm:!px-5 !min-h-0">
+          <div className="brand !gap-2 sm:!gap-[10px]">
+            <span className="brand-mark hidden sm:inline-flex">T</span>
             <div>
-              <h1>TCAS Tracker</h1>
+              <h1 className="!text-[16px] sm:!text-[19px]">TCAS Tracker</h1>
               <div className="tagline hidden sm:block">ติดตามการยื่นสมัคร Portfolio ทุกที่ ไม่ให้พลาดกำหนดการ</div>
             </div>
           </div>
           <div className="topbar-actions">
-            <button className="btn btn-primary !px-3 sm:!px-[15px]" onClick={() => handleOpenForm()}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M12 4v16M4 12h16"/></svg>
+            <button className="btn btn-primary !p-2 sm:!px-[15px] sm:!py-[9px] !rounded-full aspect-square sm:aspect-auto flex justify-center items-center" onClick={() => handleOpenForm()}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="sm:w-[14px] sm:h-[14px]"><path d="M12 4v16M4 12h16"/></svg>
               <span className="hidden sm:inline">เพิ่มรายการ</span>
             </button>
           </div>
