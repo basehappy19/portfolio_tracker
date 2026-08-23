@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { verifyPin } from '@/app/actions'
 
 const STORAGE_KEY = 'tcas_auth'
-const PIN = '2307'
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000
 
 function isAuthenticated(): boolean {
@@ -27,6 +27,7 @@ export default function PinGate({ children }: { children: React.ReactNode }) {
   const [pin, setPin] = useState('')
   const [error, setError] = useState(false)
   const [shake, setShake] = useState(false)
+  const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -39,8 +40,11 @@ export default function PinGate({ children }: { children: React.ReactNode }) {
     }
   }, [authed])
 
-  const submit = () => {
-    if (pin === PIN) {
+  const submit = async (pinValue: string) => {
+    setLoading(true)
+    const valid = await verifyPin(pinValue)
+    setLoading(false)
+    if (valid) {
       saveAuth()
       setAuthed(true)
     } else {
@@ -52,7 +56,7 @@ export default function PinGate({ children }: { children: React.ReactNode }) {
   }
 
   const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') submit()
+    if (e.key === 'Enter') submit(pin)
   }
 
   // Still checking
@@ -113,15 +117,13 @@ export default function PinGate({ children }: { children: React.ReactNode }) {
           inputMode="numeric"
           maxLength={4}
           value={pin}
+          disabled={loading}
           onChange={e => {
             const v = e.target.value.replace(/\D/g, '').slice(0, 4)
             setPin(v)
             setError(false)
             if (v.length === 4) {
-              setTimeout(() => {
-                if (v === PIN) { saveAuth(); setAuthed(true) }
-                else { setError(true); setShake(true); setPin(''); setTimeout(() => setShake(false), 500) }
-              }, 120)
+              setTimeout(() => submit(v), 120)
             }
           }}
           onKeyDown={handleKey}
@@ -131,7 +133,7 @@ export default function PinGate({ children }: { children: React.ReactNode }) {
         />
 
         {/* Numpad */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, width: '100%' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, width: '100%', opacity: loading ? 0.5 : 1, pointerEvents: loading ? 'none' : 'auto' }}>
           {[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((key, i) => (
             <button key={i}
               onClick={() => {
@@ -141,10 +143,7 @@ export default function PinGate({ children }: { children: React.ReactNode }) {
                 setPin(next)
                 setError(false)
                 if (next.length === 4) {
-                  setTimeout(() => {
-                    if (next === PIN) { saveAuth(); setAuthed(true) }
-                    else { setError(true); setShake(true); setPin(''); setTimeout(() => setShake(false), 500) }
-                  }, 120)
+                  setTimeout(() => submit(next), 120)
                 }
               }}
               style={{

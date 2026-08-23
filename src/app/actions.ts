@@ -26,6 +26,10 @@ export async function getPrograms() {
   }))
 }
 
+export async function verifyPin(pin: string) {
+  return pin === process.env.TRACKER_PIN
+}
+
 export async function getSuggestions() {
   const [unis, facs, majors, currs] = await Promise.all([
     prisma.university.findMany({ select: { name: true } }),
