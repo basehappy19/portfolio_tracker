@@ -26,19 +26,36 @@ const selectStyles = {
   control: (base: any, state: any) => ({
     ...base,
     background: 'var(--surface-2)',
-    border: '1px solid var(--border)',
+    borderColor: state.isFocused ? 'var(--text)' : 'var(--border)',
     borderRadius: 8,
-    boxShadow: 'none',
+    boxShadow: state.isFocused ? '0 0 0 1px var(--text)' : 'none',
     fontSize: 14,
     minHeight: 38,
-    '&:hover': { border: '1px solid var(--border-hover)' }
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      borderColor: state.isFocused ? 'var(--text)' : 'var(--border-hover)'
+    }
   }),
-  menu: (base: any) => ({ ...base, fontSize: 14, zIndex: 9999 }),
+  menu: (base: any) => ({ 
+    ...base, 
+    fontSize: 14, 
+    zIndex: 9999,
+    borderRadius: 8,
+    boxShadow: 'var(--shadow-lg)'
+  }),
   option: (base: any, state: any) => ({
     ...base,
-    background: state.isFocused ? 'var(--surface-3)' : 'transparent',
-    color: 'var(--text)',
-    cursor: 'pointer'
+    background: state.isSelected 
+      ? 'var(--text)' 
+      : state.isFocused 
+        ? 'var(--surface-3)' 
+        : 'transparent',
+    color: state.isSelected ? '#fff' : 'var(--text)',
+    cursor: 'pointer',
+    '&:active': {
+      background: 'var(--text)',
+      color: '#fff'
+    }
   })
 }
 
