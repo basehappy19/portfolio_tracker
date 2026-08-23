@@ -307,7 +307,7 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)' }} />
             รายการค้างชำระ ({unpaidPrograms.length})
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" style={{ display: 'grid', gap: 8 }}>
             {unpaidPrograms.map(p => (
               <div
                 key={p.id}
