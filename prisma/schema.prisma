@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Program {
+  id              String     @id @default(uuid())
+  university      String
+  faculty         String?
+  major           String?
+  curriculum      String?
+  round           String?
+  status          String     @default("รอประกาศเกณฑ์")
+  openDate        String?
+  closeDate       String?
+  resultDate      String?
+  interviewDate   String?
+  interviewFormat String?
+  interviewPlace  String?
+  confirmationDate String?
+  criteria        String?
+  tcasFolio       Boolean    @default(false)
+  link            String?
+  applicationFee  Int?
+  feePaid         Boolean    @default(false)
+  note            String?
+  priority        Int        @default(0)
+  documents       Document[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  programId String
+  program   Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  text      String
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
