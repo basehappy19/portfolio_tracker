@@ -303,21 +303,30 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
       )}
 
       {unpaidPrograms.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 10, marginBottom: 4 }}>
-          <span style={{ fontSize: 12.5, color: 'var(--text-faint)', fontWeight: 600 }}>ยังไม่จ่าย:</span>
-          {unpaidPrograms.map(p => (
-            <span
-              key={p.id}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                padding: '3px 9px', borderRadius: 999, fontSize: 12.5, fontWeight: 500,
-                background: 'var(--danger-soft)', color: 'var(--danger)',
-              }}
-            >
-              {p.university}{p.major ? ` · ${p.major}` : ''}
-              <b style={{ fontWeight: 700 }}>{p.applicationFee.toLocaleString('th-TH')} บาท</b>
-            </span>
-          ))}
+        <div style={{ marginTop: 12, marginBottom: 8, padding: 16, borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)' }} />
+            รายการค้างชำระ ({unpaidPrograms.length})
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {unpaidPrograms.map(p => (
+              <div
+                key={p.id}
+                style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)',
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingRight: 12 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.university}</span>
+                  {p.major && <span style={{ color: 'var(--text-muted)', fontSize: 11.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{p.major}</span>}
+                </div>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--danger)', flexShrink: 0 }}>
+                  {p.applicationFee.toLocaleString('th-TH')} ฿
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
