@@ -10,6 +10,21 @@ export async function getPrograms() {
   })
 }
 
+export async function getSuggestions() {
+  const [unis, facs, majors, currs] = await Promise.all([
+    prisma.program.findMany({ select: { university: true }, distinct: ['university'], where: { university: { not: '' } } }),
+    prisma.program.findMany({ select: { faculty: true }, distinct: ['faculty'], where: { faculty: { not: '' } } }),
+    prisma.program.findMany({ select: { major: true }, distinct: ['major'], where: { major: { not: '' } } }),
+    prisma.program.findMany({ select: { curriculum: true }, distinct: ['curriculum'], where: { curriculum: { not: '' } } }),
+  ])
+  return {
+    universities: unis.map(u => u.university),
+    faculties: facs.map(f => f.faculty),
+    majors: majors.map(m => m.major).filter(Boolean),
+    curriculums: currs.map(c => c.curriculum).filter(Boolean),
+  }
+}
+
 export async function createProgram(data: any) {
   const { documents, ...programData } = data
   const created = await prisma.program.create({

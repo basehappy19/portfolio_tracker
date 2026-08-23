@@ -107,7 +107,7 @@ function UniversityLogo({ university, size = 28 }: { university: string; size?: 
   )
 }
 
-export default function TrackerApp({ initialPrograms }: { initialPrograms: any[] }) {
+export default function TrackerApp({ initialPrograms, suggestions }: { initialPrograms: any[], suggestions: any }) {
   const [programs, setPrograms] = useState(initialPrograms)
   const router = useRouter()
   const params = useSearchParams()
@@ -482,7 +482,7 @@ export default function TrackerApp({ initialPrograms }: { initialPrograms: any[]
 
       {formOpen && (
         <ProgramFormModal
-          programs={programs}
+          suggestions={suggestions}
           editingProgram={editingProgram}
           onClose={() => setFormOpen(false)}
           onSave={async (data) => {
