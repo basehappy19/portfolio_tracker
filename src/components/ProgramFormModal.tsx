@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 
 interface ProgramFormModalProps {
   editingProgram: any | null
+  programs: any[]
   onClose: () => void
   onSave: (data: any) => Promise<void>
 }
@@ -14,7 +15,12 @@ interface ProgramFormModalProps {
 const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }
 const inp = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 14 }
 
-export default function ProgramFormModal({ editingProgram, onClose, onSave }: ProgramFormModalProps) {
+export default function ProgramFormModal({ editingProgram, programs, onClose, onSave }: ProgramFormModalProps) {
+  const uniqueUniversities = Array.from(new Set(programs.map(p => p.university).filter(Boolean)))
+  const uniqueFaculties = Array.from(new Set(programs.map(p => p.faculty).filter(Boolean)))
+  const uniqueMajors = Array.from(new Set(programs.map(p => p.major).filter(Boolean)))
+  const uniqueCurriculums = Array.from(new Set(programs.map(p => p.curriculum).filter(Boolean)))
+
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState<any>({
     university: '', faculty: '', major: '', curriculum: '', round: '', status: 'รอประกาศเกณฑ์',
@@ -114,12 +120,18 @@ export default function ProgramFormModal({ editingProgram, onClose, onSave }: Pr
           {/* STEP 1 */}
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeIn 0.3s ease' }}>
-              <div><label style={lbl}>มหาวิทยาลัย *</label><input required value={formData.university} onChange={e => updateFields({university: e.target.value})} style={inp} placeholder="เช่น จุฬาลงกรณ์มหาวิทยาลัย" /></div>
+              
+              <datalist id="dl-university">{uniqueUniversities.map(x => <option key={x} value={x} />)}</datalist>
+              <datalist id="dl-faculty">{uniqueFaculties.map(x => <option key={x} value={x} />)}</datalist>
+              <datalist id="dl-major">{uniqueMajors.map(x => <option key={x} value={x} />)}</datalist>
+              <datalist id="dl-curriculum">{uniqueCurriculums.map(x => <option key={x} value={x} />)}</datalist>
+
+              <div><label style={lbl}>มหาวิทยาลัย *</label><input required list="dl-university" value={formData.university} onChange={e => updateFields({university: e.target.value})} style={inp} placeholder="เช่น จุฬาลงกรณ์มหาวิทยาลัย" /></div>
               <div style={{display:'flex', gap:10}}>
-                <div style={{flex:1}}><label style={lbl}>คณะ *</label><input required value={formData.faculty} onChange={e => updateFields({faculty: e.target.value})} style={inp} /></div>
-                <div style={{flex:1}}><label style={lbl}>สาขา</label><input value={formData.major} onChange={e => updateFields({major: e.target.value})} style={inp} /></div>
+                <div style={{flex:1}}><label style={lbl}>คณะ *</label><input required list="dl-faculty" value={formData.faculty} onChange={e => updateFields({faculty: e.target.value})} style={inp} /></div>
+                <div style={{flex:1}}><label style={lbl}>สาขา</label><input list="dl-major" value={formData.major} onChange={e => updateFields({major: e.target.value})} style={inp} /></div>
               </div>
-              <div><label style={lbl}>หลักสูตร</label><input value={formData.curriculum} onChange={e => updateFields({curriculum: e.target.value})} style={inp} placeholder="เช่น นานาชาติ, ภาคพิเศษ" /></div>
+              <div><label style={lbl}>หลักสูตร</label><input list="dl-curriculum" value={formData.curriculum} onChange={e => updateFields({curriculum: e.target.value})} style={inp} placeholder="เช่น นานาชาติ, ภาคพิเศษ" /></div>
               <div style={{display:'flex', gap:10}}>
                 <div style={{flex:1}}><label style={lbl}>รอบที่สมัคร</label><input value={formData.round} onChange={e => updateFields({round: e.target.value})} style={inp} placeholder="เช่น 1 Portfolio" /></div>
                 <div style={{flex:1}}><label style={lbl}>สถานะ</label>

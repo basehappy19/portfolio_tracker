@@ -482,6 +482,7 @@ export default function TrackerApp({ initialPrograms }: { initialPrograms: any[]
 
       {formOpen && (
         <ProgramFormModal
+          programs={programs}
           editingProgram={editingProgram}
           onClose={() => setFormOpen(false)}
           onSave={async (data) => {
