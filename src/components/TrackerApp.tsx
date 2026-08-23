@@ -52,7 +52,33 @@ function CriteriaBars({ criteria }: { criteria: string }) {
   )
 }
 
-/* ============ University Logo ============ */
+const ADMISSION_URLS: Record<string, string> = {
+  'จุฬาลงกรณ์': 'https://admission.chula.ac.th/',
+  'ธรรมศาสตร์': 'https://www.tuadmissions.in.th/',
+  'มหิดล': 'https://tcas.mahidol.ac.th/',
+  'เชียงใหม่': 'https://www1.reg.cmu.ac.th/ugradapply/',
+  'เกษตรศาสตร์': 'https://admission.ku.ac.th/',
+  'ขอนแก่น': 'https://admissions.kku.ac.th/',
+  'ลาดกระบัง': 'https://new.reg.kmitl.ac.th/admission/',
+  'พระจอมเกล้าธนบุรี': 'https://admission.kmutt.ac.th/',
+  'พระนครเหนือ': 'https://admission.kmutnb.ac.th/',
+  'ศิลปากร': 'https://admission.su.ac.th/',
+  'ศรีนครินทรวิโรฒ': 'https://admission.swu.ac.th/',
+  'สงขลานครินทร์': 'https://entrance.psu.ac.th/',
+  'บูรพา': 'https://reg.buu.ac.th/',
+  'นเรศวร': 'https://admission.nu.ac.th/',
+  'เทคโนโลยีสุรนารี': 'https://sutgateway.sut.ac.th/',
+  'มหาสารคาม': 'https://admission.msu.ac.th/',
+}
+
+function getAdmissionUrl(university: string) {
+  for (const [key, url] of Object.entries(ADMISSION_URLS)) {
+    if (university.includes(key)) return url
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent('ระบบรับสมัครนักศึกษา ' + university)}`
+}
+
+/* ============ University Domain (สำหรับดึง favicon จริง) ============ */
 const UNI_DOMAIN: Record<string, string> = {
   'จุฬาลงกรณ์':         'chula.ac.th',
   'ธรรมศาสตร์':         'tu.ac.th',
@@ -80,37 +106,47 @@ const UNI_DOMAIN: Record<string, string> = {
   'สถาบันเทคโนโลยีพระจอมเกล้า': 'kmitl.ac.th',
 }
 
-const ADMISSION_URLS: Record<string, string> = {
-  'จุฬาลงกรณ์': 'https://admission.chula.ac.th/',
-  'ธรรมศาสตร์': 'https://www.tuadmissions.in.th/',
-  'มหิดล': 'https://tcas.mahidol.ac.th/',
-  'เชียงใหม่': 'https://www1.reg.cmu.ac.th/ugradapply/',
-  'เกษตรศาสตร์': 'https://admission.ku.ac.th/',
-  'ขอนแก่น': 'https://admissions.kku.ac.th/',
-  'ลาดกระบัง': 'https://new.reg.kmitl.ac.th/admission/',
-  'พระจอมเกล้าธนบุรี': 'https://admission.kmutt.ac.th/',
-  'พระนครเหนือ': 'https://admission.kmutnb.ac.th/',
-  'ศิลปากร': 'https://admission.su.ac.th/',
-  'ศรีนครินทรวิโรฒ': 'https://admission.swu.ac.th/',
-  'สงขลานครินทร์': 'https://entrance.psu.ac.th/',
-  'บูรพา': 'https://reg.buu.ac.th/',
-  'นเรศวร': 'https://admission.nu.ac.th/',
-  'เทคโนโลยีสุรนารี': 'https://sutgateway.sut.ac.th/',
-  'มหาสารคาม': 'https://admission.msu.ac.th/',
-}
-
-function getAdmissionUrl(university: string) {
-  for (const [key, url] of Object.entries(ADMISSION_URLS)) {
-    if (university.includes(key)) return url
-  }
-  return `https://www.google.com/search?q=${encodeURIComponent('ระบบรับสมัครนักศึกษา ' + university)}`
-}
-
 function getUniDomain(university: string): string | null {
   for (const [key, domain] of Object.entries(UNI_DOMAIN)) {
     if (university.includes(key)) return domain
   }
   return null
+}
+
+/* ============ University Abbreviation ============ */
+// ตัวย่อทางการที่รู้จักทั่วไปของแต่ละสถาบัน (ใช้เป็น fallback เมื่อโหลด favicon ไม่ได้)
+const UNI_ABBR: Record<string, string> = {
+  'จุฬาลงกรณ์':         'CU',
+  'ธรรมศาสตร์':         'TU',
+  'มหิดล':             'MU',
+  'มหาสารคาม':          'MSU',
+  'เทคโนโลยีสุรนารี':   'SUT',
+  'เชียงใหม่':          'CMU',
+  'สงขลานครินทร์':      'PSU',
+  'พระจอมเกล้าธนบุรี':  'KMUTT',
+  'ลาดกระบัง':          'KMITL',
+  'ศรีนครินทรวิโรฒ':    'SWU',
+  'พระนครเหนือ':        'KMUTNB',
+  'บูรพา':             'BUU',
+  'สวนสุนันทา':         'SSRU',
+  'อุบลราชธานี':        'UBU',
+  'เกษตรศาสตร์':        'KU',
+  'ขอนแก่น':           'KKU',
+  'นเรศวร':            'NU',
+  'สยาม':              'SIAM',
+  'กรุงเทพ':           'BU',
+  'รังสิต':            'RSU',
+  'อัสสัมชัญ':          'ABAC',
+  'หอการค้าไทย':        'UTCC',
+  'ศิลปากร':           'SU',
+}
+
+function getUniAbbr(university: string): string {
+  for (const [key, abbr] of Object.entries(UNI_ABBR)) {
+    if (university.includes(key)) return abbr
+  }
+  // ไม่รู้จัก: ใช้อักษรไทยตัวแรก (ตัดคำนำหน้าทั่วไปออก) แทน
+  return university.replace(/^(มหาวิทยาลัย|สถาบันเทคโนโลยี|สถาบัน)/, '').trim().charAt(0) || university.charAt(0)
 }
 
 /* ============ University Brand Color ============ */
@@ -150,23 +186,70 @@ function getUniColor(university: string): string {
   return `hsl(${hashHue(university)}, 60%, 42%)`
 }
 
+// ขนาดตัวอักษรของแบดจ์ ลดลงเมื่อตัวย่อยาวขึ้น เพื่อให้อ่านออกชัดเจนเสมอ
+function abbrFontScale(len: number): number {
+  if (len <= 2) return 0.40
+  if (len === 3) return 0.34
+  if (len === 4) return 0.28
+  if (len === 5) return 0.23
+  return 0.19
+}
+
+// มหาวิทยาลัยที่ Google favicon คืนไอคอนสำรองทั่วไปแบบ "โหลดสำเร็จ" (ไม่ error) เช่น วงกลมตัวอักษรเดียวลอย ๆ
+// จึง onError ตรวจจับไม่ได้ว่าโลโก้จริงไม่มี — สำหรับกลุ่มนี้ใช้ไฟล์โลโก้จริงที่เก็บไว้ใน /public แทน
+// (วางไฟล์ไว้ที่ public/<key>.png แล้วอ้างอิงด้วย path เริ่มต้นด้วย / ตรง ๆ)
+const LOCAL_LOGO: Record<string, string> = {
+  'สวนสุนันทา':          '/ssru.png',  // มหาวิทยาลัยราชภัฏสวนสุนันทา
+  'อุบลราชธานี':          '/ubu.png',   // มหาวิทยาลัยอุบลราชธานี
+  'พระจอมเกล้าธนบุรี':    '/kmutt.png', // มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี
+  'เทคโนโลยีสุรนารี':      '/sut.png',   // มหาวิทยาลัยเทคโนโลยีสุรนารี
+  'ลาดกระบัง':            '/kmitl.png', // สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง
+}
+
+function getLocalLogo(university: string): string | null {
+  for (const [key, path] of Object.entries(LOCAL_LOGO)) {
+    if (university.includes(key)) return path
+  }
+  return null
+}
+
+// ลำดับความสำคัญ: 1) ไฟล์โลโก้จริงที่เก็บไว้เอง (ชัวร์สุด ไม่พึ่งพาบริการภายนอก)
+// 2) favicon จากเว็บมหาวิทยาลัย (เผื่อมหาวิทยาลัยอื่นที่ยังไม่มีไฟล์จริง)
+// 3) แบดจ์ตัวย่อ+สีประจำมหาวิทยาลัย (fallback สุดท้าย กันไม่ให้ขึ้นว่างเปล่า)
 function UniversityLogo({ university, size = 28 }: { university: string; size?: number }) {
   const [imgError, setImgError] = useState(false)
+  const localLogo = getLocalLogo(university)
   const domain = getUniDomain(university)
   const color = getUniColor(university)
-  const initial = university.replace(/^(มหาวิทยาลัย|สถาบันเทคโนโลยี|สถาบัน)/, '').trim().charAt(0) || university.charAt(0)
-  if (!domain || imgError) return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.42, fontWeight: 700, color: '#fff', flexShrink: 0, boxShadow: `0 0 0 2px ${color}33` }}>
-      {initial}
+  const abbr = getUniAbbr(university)
+  const src = localLogo || (domain ? `https://www.google.com/s2/favicons?sz=64&domain=${domain}` : null)
+
+  if (!src || imgError) return (
+    <div
+      title={university}
+      style={{
+        width: size, height: size, borderRadius: size * 0.28, background: color,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: size * abbrFontScale(abbr.length), lineHeight: 1, fontWeight: 700,
+        letterSpacing: -0.2, color: '#fff', flexShrink: 0, padding: '0 2px',
+        boxShadow: `0 1px 3px rgba(0,0,0,0.18)`,
+      }}
+    >
+      {abbr}
     </div>
   )
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`https://logo.clearbit.com/${domain}`}
+      src={src}
       alt={university}
+      title={university}
       width={size} height={size}
-      style={{ borderRadius: '50%', objectFit: 'contain', background: '#fff', border: `2px solid ${color}`, flexShrink: 0 }}
+      style={{
+        width: size, height: size, maxWidth: size, maxHeight: size, minWidth: size, minHeight: size,
+        borderRadius: size * 0.28, objectFit: 'contain', background: '#fff', border: `2px solid ${color}`, flexShrink: 0,
+      }}
       onError={() => setImgError(true)}
     />
   )
@@ -435,8 +518,8 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
             {filteredPrograms.map(p => {
               const u = computeUrgency(p)
               return (
-                <article key={p.id} className="card" style={{ '--uni-color': getUniColor(p.university), borderLeft: '4px solid var(--uni-color)' } as any}>
-                  <div className="card-urgency" data-tone={u.tone} style={{ background: 'color-mix(in srgb, var(--uni-color) 12%, transparent)', color: 'var(--uni-color)' }}>
+                <article key={p.id} className="card" style={{ borderTop: `3px solid ${getUniColor(p.university)}` }}>
+                  <div className="card-urgency" data-tone={u.tone}>
                     {u.sortKey != null ? (
                       <><div className="u-num num">{u.diffDays}</div><div className="u-label">{u.dateLabel || 'วันที่เหลือ'}</div></>
                     ) : (
@@ -852,7 +935,7 @@ function CompareView({ programs }: { programs: any[] }) {
 
   const ROW_DEFS: { label: string; render: (p: any) => React.ReactNode }[] = [
     { label: 'มหาวิทยาลัย', render: p => (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: getUniColor(p.university) }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
         <UniversityLogo university={p.university} size={24} />
         {p.university}
       </div>
@@ -992,11 +1075,11 @@ function CompareView({ programs }: { programs: any[] }) {
               <tr>
                 <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12, color: 'var(--text-faint)', background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}></th>
                 {picked.map((p, i) => (
-                  <th key={p.id} style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', borderTop: `4px solid ${getUniColor(p.university)}`, background: `color-mix(in srgb, ${getUniColor(p.university)} 8%, var(--surface-2))`, animation: `slideInRight 0.3s ease ${i*0.07}s both` }}>
+                  <th key={p.id} style={{ padding: '10px 12px', textAlign: 'left', background: 'var(--surface-2)', borderBottom: '2px solid var(--border)', borderTop: `3px solid ${getUniColor(p.university)}`, animation: `slideInRight 0.3s ease ${i*0.07}s both` }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                       <UniversityLogo university={p.university} size={26} />
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: getUniColor(p.university) }}>{p.university}</div>
+                        <div style={{ fontWeight: 700, fontSize: 13 }}>{p.university}</div>
                         <div style={{ fontWeight: 400, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{p.major || p.faculty}</div>
                       </div>
                     </div>
