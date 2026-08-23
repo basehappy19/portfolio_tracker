@@ -154,6 +154,16 @@ export async function setPriority(programId: string, priority: number) {
   revalidatePath('/')
 }
 
+export async function setPriorities(updates: { id: string, priority: number }[]) {
+  for (const u of updates) {
+    await prisma.program.update({
+      where: { id: u.id },
+      data: { priority: u.priority }
+    })
+  }
+  revalidatePath('/')
+}
+
 export async function updateStatus(programId: string, status: string) {
   await prisma.program.update({
     where: { id: programId },

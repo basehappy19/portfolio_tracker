@@ -56,6 +56,7 @@ export default function ThaiDatePicker({ selected, onChange, placeholderText, st
       locale="th"
       dateFormat="dd/MM/yyyy"
       placeholderText={placeholderText}
+      wrapperClassName="w-full"
       customInput={<CustomInput style={style} className={className} id={id} name={name} />}
       renderCustomHeader={({
         date,

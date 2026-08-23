@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { STATUS_META, STATUS_ORDER, NEXT_STATUS, INTERVIEW_FORMAT_LABEL } from '@/lib/constants'
 import { computeUrgency, formatDate, isFullDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import { createProgram, updateProgram, deleteProgram, toggleDocument, setPriority, updateStatus, setFeePaid } from '@/app/actions'
+import { createProgram, updateProgram, deleteProgram, toggleDocument, setPriority, setPriorities, updateStatus, setFeePaid } from '@/app/actions'
 import ProgramFormModal from './ProgramFormModal'
 
 function parseCriteria(text: string): { label: string; pct: number }[] {
@@ -80,6 +80,32 @@ const UNI_DOMAIN: Record<string, string> = {
   'สถาบันเทคโนโลยีพระจอมเกล้า': 'kmitl.ac.th',
 }
 
+const ADMISSION_URLS: Record<string, string> = {
+  'จุฬาลงกรณ์': 'https://admission.chula.ac.th/',
+  'ธรรมศาสตร์': 'https://www.tuadmissions.in.th/',
+  'มหิดล': 'https://tcas.mahidol.ac.th/',
+  'เชียงใหม่': 'https://www1.reg.cmu.ac.th/ugradapply/',
+  'เกษตรศาสตร์': 'https://admission.ku.ac.th/',
+  'ขอนแก่น': 'https://admissions.kku.ac.th/',
+  'ลาดกระบัง': 'https://new.reg.kmitl.ac.th/admission/',
+  'พระจอมเกล้าธนบุรี': 'https://admission.kmutt.ac.th/',
+  'พระนครเหนือ': 'https://admission.kmutnb.ac.th/',
+  'ศิลปากร': 'https://admission.su.ac.th/',
+  'ศรีนครินทรวิโรฒ': 'https://admission.swu.ac.th/',
+  'สงขลานครินทร์': 'https://entrance.psu.ac.th/',
+  'บูรพา': 'https://reg.buu.ac.th/',
+  'นเรศวร': 'https://admission.nu.ac.th/',
+  'เทคโนโลยีสุรนารี': 'https://sutgateway.sut.ac.th/',
+  'มหาสารคาม': 'https://admission.msu.ac.th/',
+}
+
+function getAdmissionUrl(university: string) {
+  for (const [key, url] of Object.entries(ADMISSION_URLS)) {
+    if (university.includes(key)) return url
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent('ระบบรับสมัครนักศึกษา ' + university)}`
+}
+
 function getUniDomain(university: string): string | null {
   for (const [key, domain] of Object.entries(UNI_DOMAIN)) {
     if (university.includes(key)) return domain
@@ -87,11 +113,51 @@ function getUniDomain(university: string): string | null {
   return null
 }
 
+/* ============ University Brand Color ============ */
+// สีประจำมหาวิทยาลัยจริง (อ้างอิงจากประกาศ/หน้าเว็บทางการของแต่ละสถาบัน)
+const UNI_COLOR: Record<string, string> = {
+  'จุฬาลงกรณ์':          '#ec4899', // สีชมพู
+  'ธรรมศาสตร์':          '#dc2626', // สีเหลือง-แดง
+  'มหิดล':               '#2563eb', // สีน้ำเงิน
+  'มหาสารคาม':           '#a16207', // สีเหลือง-เทา
+  'เทคโนโลยีสุรนารี':     '#ea580c', // สีแสด-ทอง
+  'เชียงใหม่':            '#7c3aed', // สีม่วงดอกรัก
+  'สงขลานครินทร์':        '#1e40af', // สีน้ำเงิน
+  'พระจอมเกล้าธนบุรี':    '#d97706', // สีแสด-เหลือง
+  'ลาดกระบัง':            '#c2410c', // สีแสด
+  'ศรีนครินทรวิโรฒ':      '#b91c1c', // สีเทา-แดง
+  'พระนครเหนือ':          '#991b1b', // สีแดงหมากสุก
+  'บูรพา':               '#57534e', // สีเทา-ทอง
+  'สวนสุนันทา':           '#db2777', // สีน้ำเงิน-ชมพู
+  'อุบลราชธานี':          '#eab308', // สีเหลือง
+  'เกษตรศาสตร์':          '#16a34a', // สีเขียว
+  'ขอนแก่น':             '#171717', // สีดำ-เหลือง
+  'นเรศวร':              '#7c2d92', // สีม่วง
+  'ศิลปากร':             '#059669', // สีเขียวเวอร์ริเดียน
+}
+
+function hashHue(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) >>> 0
+  return hash % 360
+}
+
+function getUniColor(university: string): string {
+  for (const [key, color] of Object.entries(UNI_COLOR)) {
+    if (university.includes(key)) return color
+  }
+  // มหาวิทยาลัยที่ไม่มีในรายการ: สร้างสีที่คงที่เฉพาะตัว (สีเดิมทุกครั้งสำหรับชื่อเดิม)
+  return `hsl(${hashHue(university)}, 60%, 42%)`
+}
+
 function UniversityLogo({ university, size = 28 }: { university: string; size?: number }) {
+  const [imgError, setImgError] = useState(false)
   const domain = getUniDomain(university)
-  if (!domain) return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.45, fontWeight: 700, color: 'var(--text-faint)', flexShrink: 0 }}>
-      {university.charAt(0)}
+  const color = getUniColor(university)
+  const initial = university.replace(/^(มหาวิทยาลัย|สถาบันเทคโนโลยี|สถาบัน)/, '').trim().charAt(0) || university.charAt(0)
+  if (!domain || imgError) return (
+    <div style={{ width: size, height: size, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.42, fontWeight: 700, color: '#fff', flexShrink: 0, boxShadow: `0 0 0 2px ${color}33` }}>
+      {initial}
     </div>
   )
   return (
@@ -100,8 +166,8 @@ function UniversityLogo({ university, size = 28 }: { university: string; size?: 
       src={`https://www.google.com/s2/favicons?sz=64&domain=${domain}`}
       alt={university}
       width={size} height={size}
-      style={{ borderRadius: '50%', objectFit: 'contain', background: '#fff', border: '1px solid var(--border)', flexShrink: 0 }}
-      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+      style={{ borderRadius: '50%', objectFit: 'contain', background: '#fff', border: `2px solid ${color}`, flexShrink: 0 }}
+      onError={() => setImgError(true)}
     />
   )
 }
@@ -258,7 +324,7 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
       <header className="topbar">
         <div className="topbar-inner !py-2.5 !px-4 sm:!py-4 sm:!px-5 !min-h-0">
           <div className="brand !gap-2 sm:!gap-[10px]">
-            <span className="brand-mark hidden sm:inline-flex">T</span>
+            <img src="/icon-70.png" alt="TCAS Tracker" className="hidden sm:inline-flex" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'contain' }} />
             <div>
               <h1 className="!text-[16px] sm:!text-[19px]">TCAS Tracker</h1>
               <div className="tagline hidden sm:block">ติดตามการยื่นสมัคร Portfolio ทุกที่ ไม่ให้พลาดกำหนดการ</div>
@@ -369,7 +435,7 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
             {filteredPrograms.map(p => {
               const u = computeUrgency(p)
               return (
-                <article key={p.id} className="card">
+                <article key={p.id} className="card" style={{ borderTop: `3px solid ${getUniColor(p.university)}` }}>
                   <div className="card-urgency" data-tone={u.tone}>
                     {u.sortKey != null ? (
                       <><div className="u-num num">{u.diffDays}</div><div className="u-label">{u.dateLabel || 'วันที่เหลือ'}</div></>
@@ -387,12 +453,45 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
                         </div>
                       </div>
                       <div className="card-actions">
-                        <button className="star-btn" data-active={p.priority > 0} onClick={() => {
-                          const nextPriority = p.priority > 0 ? 0 : 1
-                          setPriority(p.id, nextPriority)
-                          setPrograms(programs.map(pr => pr.id === p.id ? { ...pr, priority: nextPriority } : pr))
-                          toast.success(nextPriority > 0 ? 'ปักหมุดแล้ว' : 'เลิกปักหมุด')
-                        }}>★</button>
+                        <button className="star-btn" data-active={p.priority > 0} 
+                          style={p.priority > 0 ? { padding: '4px 10px', fontSize: 13, fontWeight: 700, gap: 4 } : {}}
+                          onClick={() => {
+                          const current = p.priority || 0;
+                          let newPrograms = [...programs];
+                          let updates: {id: string, priority: number}[] = [];
+
+                          if (current > 0) {
+                            newPrograms = newPrograms.map(pr => {
+                              const prP = pr.priority || 0;
+                              if (pr.id === p.id) {
+                                updates.push({ id: pr.id, priority: 0 });
+                                return { ...pr, priority: 0 };
+                              }
+                              if (prP > current) {
+                                updates.push({ id: pr.id, priority: prP - 1 });
+                                return { ...pr, priority: prP - 1 };
+                              }
+                              return pr;
+                            });
+                            toast.success('ยกเลิกอันดับที่ชอบ');
+                          } else {
+                            const maxP = Math.max(0, ...newPrograms.map(pr => pr.priority || 0));
+                            const nextPriority = maxP + 1;
+                            newPrograms = newPrograms.map(pr => {
+                              if (pr.id === p.id) {
+                                updates.push({ id: pr.id, priority: nextPriority });
+                                return { ...pr, priority: nextPriority };
+                              }
+                              return pr;
+                            });
+                            toast.success(`ตั้งเป็นอันดับที่ ${nextPriority}`);
+                          }
+
+                          setPriorities(updates);
+                          setPrograms(newPrograms);
+                        }}>
+                          {p.priority > 0 ? `★ ${p.priority}` : '★'}
+                        </button>
                         <button className="btn btn-ghost btn-icon" onClick={() => handleOpenForm(p)}>✎</button>
                         <button className="btn btn-danger-ghost btn-icon" onClick={() => handleDelete(p.id)}>🗑</button>
                       </div>
@@ -463,12 +562,13 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
                         </div>
                       )}
 
-                      {(p.note || p.link) && (
-                        <div className="detail-section" style={{marginTop: 12}}>
-                          {p.link && <div style={{marginBottom:4}}><a href={p.link} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'var(--text)', color:'#fff', fontWeight: 500}}>🔗 ดูประกาศฉบับเต็ม</a></div>}
-                          {p.note && <div style={{marginTop: 8, fontSize: 13.5, color: 'var(--text-muted)'}}><b>บันทึก:</b> {p.note}</div>}
+                      <div className="detail-section" style={{marginTop: 12}}>
+                        <div style={{display:'flex', gap: 8, flexWrap: 'wrap', marginBottom: p.note ? 4 : 0}}>
+                          <a href={getAdmissionUrl(p.university)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'#10b981', color:'#fff', fontWeight: 500}}>🏛️ ระบบ Admission</a>
+                          {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'var(--text)', color:'#fff', fontWeight: 500}}>🔗 ดูประกาศฉบับเต็ม</a>}
                         </div>
-                      )}
+                        {p.note && <div style={{marginTop: 8, fontSize: 13.5, color: 'var(--text-muted)'}}><b>บันทึก:</b> {p.note}</div>}
+                      </div>
                     </details>
                   </div>
                 </article>
@@ -493,8 +593,9 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
               await updateProgram(editingProgram.id, data)
               setPrograms(programs.map(p => p.id === editingProgram.id ? { ...p, ...data } : p))
               toast.success('แก้ไขข้อมูลเรียบร้อย', { id: loading })
+              window.location.reload()
             } else {
-              await createProgram({ ...data, documents: [] })
+              await createProgram(data)
               toast.success('เพิ่มรายการใหม่เรียบร้อย', { id: loading })
               window.location.reload()
             }
@@ -737,6 +838,7 @@ function TimelineView({ programs }: { programs: any[] }) {
 
 function CompareView({ programs }: { programs: any[] }) {
   const [selected, setSelected] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
 
   const toggle = (id: string) => {
     setSelected(prev =>
@@ -787,35 +889,84 @@ function CompareView({ programs }: { programs: any[] }) {
   return (
     <div style={{ paddingBottom: 40 }}>
       {/* Selector */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 13, color: 'var(--text-faint)', marginBottom: 8 }}>
-          เลือกรายการที่ต้องการเปรียบเทียบ (สูงสุด 4 รายการ) · เลือกแล้ว {selected.length}/4
+      <div style={{ marginBottom: 24, padding: 16, background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)' }}>
+        <div style={{ fontSize: 13, color: 'var(--text-faint)', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>เลือกรายการที่ต้องการเปรียบเทียบ (สูงสุด 4 รายการ)</span>
+          <span style={{ fontWeight: 600, color: selected.length === 4 ? 'var(--danger)' : 'var(--accent)' }}>{selected.length}/4</span>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {programs.map(p => {
-            const isOn = selected.includes(p.id)
-            const disabled = !isOn && selected.length >= 4
-            return (
-              <button
-                key={p.id}
-                onClick={() => toggle(p.id)}
-                disabled={disabled}
-                style={{
-                  padding: '5px 12px', borderRadius: 8, border: `1.5px solid ${isOn ? 'var(--text)' : 'var(--border)'}`,
-                  background: isOn ? 'var(--text)' : 'var(--surface)',
-                  color: isOn ? 'var(--surface)' : 'var(--text)',
-                  fontSize: 12.5, fontWeight: isOn ? 600 : 400,
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  opacity: disabled ? 0.4 : 1,
-                  transition: 'all 0.15s ease',
-                  animation: 'fadeSlideUp 0.25s ease both',
-                }}
-              >
-                {p.university} · {p.major || p.faculty}
-              </button>
-            )
-          })}
+
+        {/* Selected Items */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: selected.length > 0 ? 16 : 0 }}>
+          {picked.map(p => (
+            <button
+              key={p.id}
+              onClick={() => toggle(p.id)}
+              style={{
+                padding: '6px 12px', borderRadius: 999, border: '1px solid var(--text)',
+                background: 'var(--text)', color: 'var(--bg)',
+                fontSize: 13, fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                animation: 'fadeSlideUp 0.2s ease both',
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: getUniColor(p.university), flexShrink: 0 }} />
+              {p.university} · {p.major || p.faculty}
+              <span style={{ opacity: 0.6 }}>✕</span>
+            </button>
+          ))}
         </div>
+
+        {/* Search to add more */}
+        {selected.length < 4 && (
+          <div style={{ position: 'relative' }}>
+            <input 
+              type="text" 
+              placeholder="ค้นหามหาวิทยาลัย หรือคณะ/สาขา เพื่อเพิ่ม..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="search-input"
+              style={{
+                width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)',
+                background: 'var(--bg)', fontSize: 13.5, color: 'var(--text)', marginBottom: 8,
+                transition: 'all 0.15s'
+              }}
+            />
+            
+            <div style={{ 
+              display: 'flex', flexDirection: 'column', gap: 4, 
+              maxHeight: 220, overflowY: 'auto', 
+              borderRadius: 8, background: 'var(--bg)',
+              border: '1px solid var(--border)'
+            }}>
+              {programs
+                .filter(p => !selected.includes(p.id))
+                .filter(p => !searchQuery || `${p.university} ${p.faculty} ${p.major}`.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map((p, i, arr) => (
+                <button
+                  key={p.id}
+                  onClick={() => { toggle(p.id); setSearchQuery('') }}
+                  style={{
+                    padding: '10px 14px', textAlign: 'left', border: 'none',
+                    borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)',
+                    background: 'transparent', color: 'var(--text)', cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', gap: 2,
+                    transition: 'background 0.1s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{p.university}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.faculty} · {p.major}</div>
+                </button>
+              ))}
+              {programs.filter(p => !selected.includes(p.id) && `${p.university} ${p.faculty} ${p.major}`.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                <div style={{ padding: '16px', fontSize: 13, color: 'var(--text-faint)', textAlign: 'center' }}>
+                  ไม่พบรายการที่ค้นหา
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Compare table */}
@@ -836,9 +987,14 @@ function CompareView({ programs }: { programs: any[] }) {
               <tr>
                 <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12, color: 'var(--text-faint)', background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}></th>
                 {picked.map((p, i) => (
-                  <th key={p.id} style={{ padding: '10px 12px', textAlign: 'left', background: 'var(--surface-2)', borderBottom: '2px solid var(--border)', animation: `slideInRight 0.3s ease ${i*0.07}s both` }}>
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>{p.university}</div>
-                    <div style={{ fontWeight: 400, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{p.major || p.faculty}</div>
+                  <th key={p.id} style={{ padding: '10px 12px', textAlign: 'left', background: 'var(--surface-2)', borderBottom: '2px solid var(--border)', borderTop: `3px solid ${getUniColor(p.university)}`, animation: `slideInRight 0.3s ease ${i*0.07}s both` }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <UniversityLogo university={p.university} size={26} />
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 13 }}>{p.university}</div>
+                        <div style={{ fontWeight: 400, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{p.major || p.faculty}</div>
+                      </div>
+                    </div>
                     <button onClick={() => toggle(p.id)} style={{ marginTop: 6, fontSize: 11, padding: '1px 7px', borderRadius: 4, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)' }}>ลบออก ✕</button>
                   </th>
                 ))}

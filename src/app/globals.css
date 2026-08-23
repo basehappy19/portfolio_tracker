@@ -93,7 +93,7 @@
     max-width:1040px; margin:0 auto; padding:16px 20px;
     display:flex; align-items:center; gap:16px; flex-wrap:wrap;
   }
-  .brand{ display:flex; align-items:baseline; gap:10px; flex:1; min-width:200px; }
+  .brand{ display:flex; align-items:center; gap:10px; flex:1; min-width:200px; }
   .brand-mark{
     display:inline-flex; align-items:center; justify-content:center;
     width:34px; height:34px; border-radius:10px;
@@ -528,3 +528,6 @@ details.more summary:hover { color: var(--accent, #6366f1); }
   border-color: var(--accent, #6366f1);
   box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
 }
+
+.react-datepicker-wrapper { width: 100%; display: block; }
+.react-datepicker__input-container { width: 100%; display: block; }

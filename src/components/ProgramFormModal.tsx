@@ -66,7 +66,7 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
     university: '', faculty: '', major: '', curriculum: '', round: '', status: 'รอประกาศเกณฑ์',
     openDate: null, closeDate: null, resultDate: null, interviewDate: null, confirmationDate: null,
     interviewFormat: '', interviewPlace: '', criteria: '', link: '', note: '', tcasFolio: false,
-    applicationFee: '', feePaid: false
+    applicationFee: '', feePaid: false, documents: []
   })
 
   const parseDateStr = (str: string | null | undefined) => {
@@ -96,7 +96,8 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
         note: editingProgram.note || '',
         tcasFolio: !!editingProgram.tcasFolio,
         applicationFee: editingProgram.applicationFee?.toString() || '',
-        feePaid: !!editingProgram.feePaid
+        feePaid: !!editingProgram.feePaid,
+        documents: editingProgram.documents ? [...editingProgram.documents] : []
       })
     }
   }, [editingProgram])
@@ -125,6 +126,7 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
       interviewDate: formatDateObj(formData.interviewDate),
       confirmationDate: formatDateObj(formData.confirmationDate),
       applicationFee: formData.applicationFee ? Math.round(parseFloat(formData.applicationFee)) : null,
+      documents: formData.documents.filter((d: any) => d.text.trim() !== '').map((d: any) => ({ text: d.text, done: d.done }))
     }
 
     await onSave(finalData)
@@ -266,6 +268,37 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
                   <input type="checkbox" checked={formData.feePaid} onChange={e => updateFields({feePaid: e.target.checked})} style={{accentColor:'var(--text)', width:15, height:15}} />
                   จ่ายค่าสมัครแล้ว
                 </label>
+              </div>
+
+              <div>
+                <label style={lbl}>เอกสารที่ต้องใช้</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                  {formData.documents.map((doc: any, i: number) => (
+                    <div key={doc.id || i} style={{ display: 'flex', gap: 8 }}>
+                      <input 
+                        value={doc.text} 
+                        onChange={e => {
+                          const newDocs = [...formData.documents]
+                          newDocs[i] = { ...newDocs[i], text: e.target.value }
+                          updateFields({ documents: newDocs })
+                        }} 
+                        style={{ ...inp, flex: 1, padding: '6px 10px' }} 
+                        placeholder="เช่น Portfolio 10 หน้า" 
+                      />
+                      <button type="button" onClick={() => {
+                        const newDocs = formData.documents.filter((_: any, idx: number) => idx !== i)
+                        updateFields({ documents: newDocs })
+                      }} style={{ padding: '0 12px', background: 'var(--surface-3)', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'var(--danger)', fontSize: 16 }}>
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={() => {
+                  updateFields({ documents: [...formData.documents, { id: Date.now().toString() + Math.random().toString(), text: '', done: false }] })
+                }} style={{ padding: '8px 12px', fontSize: 13, background: 'var(--surface-3)', color: 'var(--text)', border: '1px dashed var(--border)', borderRadius: 8, cursor: 'pointer', fontWeight: 600, width: '100%', textAlign: 'center' }}>
+                  + เพิ่มเอกสาร
+                </button>
               </div>
 
               <div><label style={lbl}>บันทึกส่วนตัว</label><textarea value={formData.note} onChange={e => updateFields({note: e.target.value})} rows={4} style={{...inp, resize:'vertical'}} placeholder="โน้ตเพิ่มเติมสิ่งที่ต้องเตรียม หรือสิ่งที่ต้องระวัง" /></div>

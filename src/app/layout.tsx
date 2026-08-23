@@ -5,6 +5,10 @@ import { Toaster } from 'react-hot-toast';
 export const metadata: Metadata = {
   title: "TCAS Tracker",
   description: "ติดตามการยื่นสมัคร Portfolio",
+  icons: {
+    icon: '/icon-70.png',
+    apple: '/icon-70.png',
+  },
 };
 
 export default function RootLayout({
