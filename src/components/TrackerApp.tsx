@@ -163,7 +163,7 @@ function UniversityLogo({ university, size = 28 }: { university: string; size?: 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`https://www.google.com/s2/favicons?sz=64&domain=${domain}`}
+      src={`https://logo.clearbit.com/${domain}`}
       alt={university}
       width={size} height={size}
       style={{ borderRadius: '50%', objectFit: 'contain', background: '#fff', border: `2px solid ${color}`, flexShrink: 0 }}
@@ -435,8 +435,8 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
             {filteredPrograms.map(p => {
               const u = computeUrgency(p)
               return (
-                <article key={p.id} className="card" style={{ borderTop: `3px solid ${getUniColor(p.university)}` }}>
-                  <div className="card-urgency" data-tone={u.tone}>
+                <article key={p.id} className="card" style={{ '--uni-color': getUniColor(p.university), borderLeft: '4px solid var(--uni-color)' } as any}>
+                  <div className="card-urgency" data-tone={u.tone} style={{ background: 'color-mix(in srgb, var(--uni-color) 12%, transparent)', color: 'var(--uni-color)' }}>
                     {u.sortKey != null ? (
                       <><div className="u-num num">{u.diffDays}</div><div className="u-label">{u.dateLabel || 'วันที่เหลือ'}</div></>
                     ) : (
@@ -851,7 +851,12 @@ function CompareView({ programs }: { programs: any[] }) {
   const picked = programs.filter(p => selected.includes(p.id))
 
   const ROW_DEFS: { label: string; render: (p: any) => React.ReactNode }[] = [
-    { label: 'มหาวิทยาลัย', render: p => <b>{p.university}</b> },
+    { label: 'มหาวิทยาลัย', render: p => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: getUniColor(p.university) }}>
+        <UniversityLogo university={p.university} size={24} />
+        {p.university}
+      </div>
+    ) },
     { label: 'คณะ', render: p => p.faculty || '—' },
     { label: 'สาขา', render: p => p.major || '—' },
     { label: 'หลักสูตร', render: p => <span style={{ fontSize: 12 }}>{p.curriculum || '—'}</span> },
@@ -987,11 +992,11 @@ function CompareView({ programs }: { programs: any[] }) {
               <tr>
                 <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12, color: 'var(--text-faint)', background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}></th>
                 {picked.map((p, i) => (
-                  <th key={p.id} style={{ padding: '10px 12px', textAlign: 'left', background: 'var(--surface-2)', borderBottom: '2px solid var(--border)', borderTop: `3px solid ${getUniColor(p.university)}`, animation: `slideInRight 0.3s ease ${i*0.07}s both` }}>
+                  <th key={p.id} style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid var(--border)', borderTop: `4px solid ${getUniColor(p.university)}`, background: `color-mix(in srgb, ${getUniColor(p.university)} 8%, var(--surface-2))`, animation: `slideInRight 0.3s ease ${i*0.07}s both` }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                       <UniversityLogo university={p.university} size={26} />
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 13 }}>{p.university}</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: getUniColor(p.university) }}>{p.university}</div>
                         <div style={{ fontWeight: 400, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{p.major || p.faculty}</div>
                       </div>
                     </div>
