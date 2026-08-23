@@ -8,10 +8,9 @@ import toast from 'react-hot-toast'
 import { createProgram, updateProgram, deleteProgram, toggleDocument, setPriority, updateStatus, setFeePaid } from '@/app/actions'
 import ProgramFormModal from './ProgramFormModal'
 
-// Parse "Portfolio 100%, GPAX 10%, Interview 50%" → [{label, pct}]
 function parseCriteria(text: string): { label: string; pct: number }[] {
   if (!text) return []
-  const re = /([^,;%\d]+?)\s*(\d{1,3}(?:\.\d+)?)\s*%/g
+  const re = /([^,;%]+?)\s*(\d{1,3}(?:\.\d+)?)\s*%/g
   const results: { label: string; pct: number }[] = []
   let m: RegExpExecArray | null
   while ((m = re.exec(text)) !== null) {
