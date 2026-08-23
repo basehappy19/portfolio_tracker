@@ -261,13 +261,13 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
             <span className="brand-mark">T</span>
             <div>
               <h1>TCAS Tracker</h1>
-              <div className="tagline">ติดตามการยื่นสมัคร Portfolio ทุกที่ ไม่ให้พลาดกำหนดการ</div>
+              <div className="tagline hidden sm:block">ติดตามการยื่นสมัคร Portfolio ทุกที่ ไม่ให้พลาดกำหนดการ</div>
             </div>
           </div>
           <div className="topbar-actions">
-            <button className="btn btn-primary" onClick={() => handleOpenForm()}>
+            <button className="btn btn-primary !px-3 sm:!px-[15px]" onClick={() => handleOpenForm()}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M12 4v16M4 12h16"/></svg>
-              เพิ่มรายการ
+              <span className="hidden sm:inline">เพิ่มรายการ</span>
             </button>
           </div>
         </div>
