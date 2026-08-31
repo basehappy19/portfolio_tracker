@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { STATUS_META, STATUS_ORDER, NEXT_STATUS, INTERVIEW_FORMAT_LABEL } from '@/lib/constants'
-import { computeUrgency, formatDate, isFullDate } from '@/lib/utils'
+import { STATUS_META, STATUS_ORDER, INTERVIEW_FORMAT_LABEL } from '@/lib/constants'
+import { computeUrgency, formatDate, isFullDate, todayISO } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { createProgram, updateProgram, deleteProgram, toggleDocument, setPriority, setPriorities, updateStatus, setFeePaid } from '@/app/actions'
 import ProgramFormModal from './ProgramFormModal'
@@ -216,13 +216,13 @@ function getLocalLogo(university: string): string | null {
 // ลำดับความสำคัญ: 1) ไฟล์โลโก้จริงที่เก็บไว้เอง (ชัวร์สุด ไม่พึ่งพาบริการภายนอก)
 // 2) favicon จากเว็บมหาวิทยาลัย (เผื่อมหาวิทยาลัยอื่นที่ยังไม่มีไฟล์จริง)
 // 3) แบดจ์ตัวย่อ+สีประจำมหาวิทยาลัย (fallback สุดท้าย กันไม่ให้ขึ้นว่างเปล่า)
-function UniversityLogo({ university, size = 28 }: { university: string; size?: number }) {
+function UniversityLogo({ university, logoUrl, size = 28 }: { university: string; logoUrl?: string | null; size?: number }) {
   const [imgError, setImgError] = useState(false)
   const localLogo = getLocalLogo(university)
   const domain = getUniDomain(university)
   const color = getUniColor(university)
   const abbr = getUniAbbr(university)
-  const src = localLogo || (domain ? `https://www.google.com/s2/favicons?sz=64&domain=${domain}` : null)
+  const src = logoUrl || localLogo || (domain ? `https://www.google.com/s2/favicons?sz=64&domain=${domain}` : null)
 
   if (!src || imgError) return (
     <div
@@ -290,8 +290,11 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
       ...overrides,
     }
     Object.entries(cur).forEach(([k, v]) => { if (v) p.set(k, v) })
-    router.replace('?' + p.toString(), { scroll: false })
-  }, [view, search, sort, filterStatuses, extraFilters, router])
+    const newUrl = '?' + p.toString()
+    if (window.location.search !== newUrl) {
+      window.history.replaceState(null, '', newUrl)
+    }
+  }, [view, search, sort, filterStatuses, extraFilters])
 
   useEffect(() => { syncUrl() }, [view, search, sort, filterStatuses, extraFilters]) // eslint-disable-line
 
@@ -300,7 +303,11 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
     let list = programs.filter(p => {
       if (filterStatuses.size > 0 && !filterStatuses.has(p.status)) return false
       if (extraFilters.tcasFolio && !p.tcasFolio) return false
-      if (extraFilters.hasInterview && !isFullDate(p.interviewDate)) return false
+      if (extraFilters.hasInterview) {
+        if (!isFullDate(p.interviewDate)) return false
+        const feeIsPaid = !p.applicationFee || p.feePaid
+        if (!feeIsPaid || (p.status !== 'ยื่นสมัครแล้ว' && p.status !== 'ติดสัมภาษณ์')) return false
+      }
       if (extraFilters.starred && !(p.priority > 0)) return false
       if (!search) return true
       const hay = [p.university, p.faculty, p.major, p.curriculum, p.round, p.criteria, p.note].join(' ').toLowerCase()
@@ -499,17 +506,30 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
             </select>
           </div>
 
-          <div className="filter-chips">
-            <button className="chip" aria-pressed={filterStatuses.size === 0} onClick={() => handleToggleStatusFilter('__all__')}>ทั้งหมด</button>
-            {STATUS_ORDER.map(status => (
-              <button key={status} className="chip" aria-pressed={filterStatuses.has(status)} onClick={() => handleToggleStatusFilter(status)}>{status}</button>
-            ))}
-          </div>
-          
-          <div className="filter-chips">
-            <button className="chip" aria-pressed={extraFilters.tcasFolio} onClick={() => handleToggleExtraFilter('tcasFolio')}>ต้องใช้ TCASFolio</button>
-            <button className="chip" aria-pressed={extraFilters.hasInterview} onClick={() => handleToggleExtraFilter('hasInterview')}>มีนัดสัมภาษณ์แล้ว</button>
-            <button className="chip" aria-pressed={extraFilters.starred} onClick={() => handleToggleExtraFilter('starred')}>★ ปักดาวไว้</button>
+          <div className="toolbar" style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>สถานะ:</span>
+              <select 
+                className="sort-select" 
+                value={filterStatuses.size === 0 ? '__all__' : [...filterStatuses][0]} 
+                onChange={e => setFilterStatuses(e.target.value === '__all__' ? new Set() : new Set([e.target.value]))}
+                style={{ minWidth: 160 }}
+              >
+                <option value="__all__">ทั้งหมด</option>
+                {STATUS_ORDER.map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>ตัวกรอง:</span>
+              <div className="filter-chips" style={{ marginBottom: 0 }}>
+                <button className="chip" aria-pressed={extraFilters.tcasFolio} onClick={() => handleToggleExtraFilter('tcasFolio')}>TCASFolio</button>
+                <button className="chip" aria-pressed={extraFilters.hasInterview} onClick={() => handleToggleExtraFilter('hasInterview')}>มีนัดสัมภาษณ์แล้ว</button>
+                <button className="chip" aria-pressed={extraFilters.starred} onClick={() => handleToggleExtraFilter('starred')}>★ ปักดาว</button>
+              </div>
+            </div>
           </div>
 
           <div className="result-count">พบ {filteredPrograms.length} รายการ</div>
@@ -529,7 +549,7 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
                   <div className="card-body">
                     <div className="card-head">
                       <div className="card-title-group" style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                        <UniversityLogo university={p.university} size={32} />
+                        <UniversityLogo university={p.university} logoUrl={p.logoUrl} size={32} />
                         <div>
                           <div className="card-uni">{p.university}</div>
                           <div className="card-sub">{[p.faculty, p.major].filter(Boolean).join(' · ')}</div>
@@ -582,7 +602,15 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
                     <div className="badge-row">
                       {p.priority > 0 && <span className="badge" data-tone="warn">★ อันดับที่ชอบ {p.priority}</span>}
                       {p.round && <span className="badge">{p.round}</span>}
-                      <span className="badge" data-tone={STATUS_META[p.status]?.color || 'neutral'}>{p.status}</span>
+                      <select 
+                        className="badge" 
+                        data-tone={STATUS_META[p.status]?.color || 'neutral'}
+                        value={p.status}
+                        onChange={(e) => handleQuickStatus(p.id, e.target.value)}
+                        style={{ cursor: 'pointer', outline: 'none', appearance: 'none', paddingRight: 24, backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke="gray" stroke-width="3" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', fontFamily: 'inherit' }}
+                      >
+                        {STATUS_ORDER.map(s => <option key={s} value={s} style={{ color: 'var(--text)', background: 'var(--bg)' }}>{s}</option>)}
+                      </select>
                       {p.tcasFolio && <span className="badge" data-tone="accent">ใช้ TCASFolio</span>}
                       
                       {p.applicationFee != null && p.applicationFee > 0 && (
@@ -595,17 +623,16 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
                           </>
                         )
                       )}
-
-                      {NEXT_STATUS[p.status]?.map(ns => (
-                        <button key={ns} className="status-quick-btn" data-tone={STATUS_META[ns]?.color || 'neutral'} onClick={() => handleQuickStatus(p.id, ns)}>
-                          {ns}
-                        </button>
-                      ))}
                     </div>
                     <div className="date-row">
-                      <div className="date-item"><b>เปิดรับ</b><span>{formatDate(p.openDate)}</span></div>
+                      {!(isFullDate(p.openDate) && new Date(todayISO() + 'T00:00:00') >= new Date(p.openDate + 'T00:00:00')) && (
+                        <div className="date-item"><b>เปิดรับ</b><span>{formatDate(p.openDate)}</span></div>
+                      )}
                       <div className="date-item"><b>ปิดรับ</b><span>{formatDate(p.closeDate)}</span></div>
                       <div className="date-item"><b>ประกาศผล</b><span>{formatDate(p.resultDate)}</span></div>
+                      {isFullDate(p.interviewDate) && (
+                        <div className="date-item"><b>สัมภาษณ์</b><span>{formatDate(p.interviewDate)}</span></div>
+                      )}
                     </div>
                     
                     <details className="more" style={{ marginTop: 12 }}>
@@ -647,7 +674,7 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
 
                       <div className="detail-section" style={{marginTop: 12}}>
                         <div style={{display:'flex', gap: 8, flexWrap: 'wrap', marginBottom: p.note ? 4 : 0}}>
-                          <a href={getAdmissionUrl(p.university)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'#10b981', color:'#fff', fontWeight: 500}}>🏛️ ระบบ Admission</a>
+                          <a href={p.admissionLink || getAdmissionUrl(p.university)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'#10b981', color:'#fff', fontWeight: 500}}>🏛️ ระบบ Admission</a>
                           {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'var(--text)', color:'#fff', fontWeight: 500}}>🔗 ดูประกาศฉบับเต็ม</a>}
                         </div>
                         {p.note && <div style={{marginTop: 8, fontSize: 13.5, color: 'var(--text-muted)'}}><b>บันทึก:</b> {p.note}</div>}
@@ -676,11 +703,10 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
               await updateProgram(editingProgram.id, data)
               setPrograms(programs.map(p => p.id === editingProgram.id ? { ...p, ...data } : p))
               toast.success('แก้ไขข้อมูลเรียบร้อย', { id: loading })
-              window.location.reload()
             } else {
-              await createProgram(data)
+              const newProgram = await createProgram(data)
+              setPrograms([...programs, newProgram])
               toast.success('เพิ่มรายการใหม่เรียบร้อย', { id: loading })
-              window.location.reload()
             }
             setFormOpen(false)
           }}
@@ -936,7 +962,7 @@ function CompareView({ programs }: { programs: any[] }) {
   const ROW_DEFS: { label: string; render: (p: any) => React.ReactNode }[] = [
     { label: 'มหาวิทยาลัย', render: p => (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-        <UniversityLogo university={p.university} size={24} />
+        <UniversityLogo university={p.university} logoUrl={p.logoUrl} size={24} />
         {p.university}
       </div>
     ) },
@@ -1077,7 +1103,7 @@ function CompareView({ programs }: { programs: any[] }) {
                 {picked.map((p, i) => (
                   <th key={p.id} style={{ padding: '10px 12px', textAlign: 'left', background: 'var(--surface-2)', borderBottom: '2px solid var(--border)', borderTop: `3px solid ${getUniColor(p.university)}`, animation: `slideInRight 0.3s ease ${i*0.07}s both` }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      <UniversityLogo university={p.university} size={26} />
+                      <UniversityLogo university={p.university} logoUrl={p.logoUrl} size={26} />
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 13 }}>{p.university}</div>
                         <div style={{ fontWeight: 400, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{p.major || p.faculty}</div>

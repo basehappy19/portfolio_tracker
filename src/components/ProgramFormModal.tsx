@@ -65,7 +65,7 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
   const [formData, setFormData] = useState<any>({
     university: '', faculty: '', major: '', curriculum: '', round: '', status: 'รอประกาศเกณฑ์',
     openDate: null, closeDate: null, resultDate: null, interviewDate: null, confirmationDate: null,
-    interviewFormat: '', interviewPlace: '', criteria: '', link: '', note: '', tcasFolio: false,
+    interviewFormat: '', interviewPlace: '', criteria: '', link: '', admissionLink: '', logoUrl: '', note: '', tcasFolio: false,
     applicationFee: '', feePaid: false, documents: []
   })
 
@@ -93,6 +93,8 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
         interviewPlace: editingProgram.interviewPlace || '',
         criteria: editingProgram.criteria || '',
         link: editingProgram.link || '',
+        admissionLink: editingProgram.admissionLink || '',
+        logoUrl: editingProgram.logoUrl || '',
         note: editingProgram.note || '',
         tcasFolio: !!editingProgram.tcasFolio,
         applicationFee: editingProgram.applicationFee?.toString() || '',
@@ -174,6 +176,26 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
                   styles={selectStyles}
                   formatCreateLabel={(val) => `เพิ่ม "${val}"`}
                 />
+              </div>
+              
+              <div style={{ zIndex: 103 }}>
+                <label style={lbl}>โลโก้มหาวิทยาลัย (ถ้ามี)</label>
+                <input type="file" accept="image/*" onChange={e => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    const reader = new FileReader()
+                    reader.onloadend = () => {
+                      updateFields({logoUrl: reader.result as string})
+                    }
+                    reader.readAsDataURL(file)
+                  }
+                }} style={{...inp, padding: '6px'}} />
+                {formData.logoUrl && (
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <img src={formData.logoUrl} alt="Logo Preview" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8, background: '#fff', border: '1px solid var(--border)' }} />
+                    <button type="button" onClick={() => updateFields({logoUrl: ''})} style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: 0 }}>ลบรูป</button>
+                  </div>
+                )}
               </div>
               
               <div style={{display:'flex', gap:10, zIndex: 103}}>
@@ -260,7 +282,8 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
           {step === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeIn 0.3s ease' }}>
               <div><label style={lbl}>เกณฑ์การคัดเลือก</label><input value={formData.criteria} onChange={e => updateFields({criteria: e.target.value})} placeholder="เช่น Portfolio 50%, GPAX 30%, Interview 20%" style={inp} /></div>
-              <div><label style={lbl}>ลิงก์ประกาศ (URL)</label><input type="url" value={formData.link} onChange={e => updateFields({link: e.target.value})} placeholder="https://..." style={inp} /></div>
+              <div><label style={lbl}>ลิงก์ประกาศฉบับเต็ม (URL)</label><input type="url" value={formData.link} onChange={e => updateFields({link: e.target.value})} placeholder="https://..." style={inp} /></div>
+              <div><label style={lbl}>ลิงก์ระบบ Admission มหาวิทยาลัย (ถ้ามี)</label><input type="url" value={formData.admissionLink} onChange={e => updateFields({admissionLink: e.target.value})} placeholder="https://..." style={inp} /></div>
               
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, alignItems:'end', marginTop: 4}}>
                 <div><label style={lbl}>ค่าสมัคร (บาท)</label><input type="number" inputMode="decimal" min={0} value={formData.applicationFee} onChange={e => updateFields({applicationFee: e.target.value})} placeholder="เช่น 300" style={inp} /></div>
