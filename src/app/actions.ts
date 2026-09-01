@@ -85,6 +85,24 @@ export async function createProgram(data: any) {
   const { documents, ...programData } = data
   const { rest, relations } = await resolveRelations(programData)
   
+  if (relations.universityId) {
+    if (rest.logoUrl) {
+      await prisma.program.updateMany({
+        where: { universityId: relations.universityId },
+        data: { logoUrl: rest.logoUrl }
+      })
+    } else {
+      const existing = await prisma.program.findFirst({
+        where: { universityId: relations.universityId, logoUrl: { not: null } }
+      })
+      if (existing && existing.logoUrl) {
+        rest.logoUrl = existing.logoUrl
+      } else {
+        rest.logoUrl = null
+      }
+    }
+  }
+
   const created = await prisma.program.create({
     data: {
       ...rest,
@@ -111,6 +129,23 @@ export async function updateProgram(id: string, data: any) {
   const { documents, ...programData } = data
   const { rest, relations } = await resolveRelations(programData)
   
+  if (relations.universityId) {
+    if (rest.logoUrl !== undefined) { // Check if logoUrl is included in the update payload
+      if (rest.logoUrl) {
+        await prisma.program.updateMany({
+          where: { universityId: relations.universityId },
+          data: { logoUrl: rest.logoUrl }
+        })
+      } else if (rest.logoUrl === '') { // Means user cleared the logo
+        await prisma.program.updateMany({
+          where: { universityId: relations.universityId },
+          data: { logoUrl: null }
+        })
+        rest.logoUrl = null
+      }
+    }
+  }
+
   await prisma.program.update({
     where: { id },
     data: {

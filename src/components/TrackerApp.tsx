@@ -255,7 +255,7 @@ function UniversityLogo({ university, logoUrl, size = 28 }: { university: string
   )
 }
 
-export default function TrackerApp({ initialPrograms, suggestions }: { initialPrograms: any[], suggestions: any }) {
+export default function TrackerApp({ initialPrograms, suggestions, readOnly = false }: { initialPrograms: any[], suggestions: any, readOnly?: boolean }) {
   const [programs, setPrograms] = useState(initialPrograms)
   const router = useRouter()
   const params = useSearchParams()
@@ -421,77 +421,83 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
             </div>
           </div>
           <div className="topbar-actions">
-            <button className="btn btn-primary !p-2 sm:!px-[15px] sm:!py-[9px] !rounded-full aspect-square sm:aspect-auto flex justify-center items-center" onClick={() => handleOpenForm()}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="sm:w-[14px] sm:h-[14px]"><path d="M12 4v16M4 12h16"/></svg>
-              <span className="hidden sm:inline">เพิ่มรายการ</span>
-            </button>
+            {!readOnly && (
+              <button className="btn btn-primary !p-2 sm:!px-[15px] sm:!py-[9px] !rounded-full aspect-square sm:aspect-auto flex justify-center items-center" onClick={() => handleOpenForm()}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="sm:w-[14px] sm:h-[14px]"><path d="M12 4v16M4 12h16"/></svg>
+                <span className="hidden sm:inline">เพิ่มรายการ</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
 
-      <section className="stats">
-        <div className="stat-tile">
-          <div className="stat-num num">{programs.length}</div>
-          <div className="stat-label">รายการที่ติดตาม</div>
-        </div>
-        <div className="stat-tile" data-tone="danger">
-          <div className="stat-num num">{urgentCount}</div>
-          <div className="stat-label">ใกล้ปิดรับ (≤7 วัน)</div>
-        </div>
-        <div className="stat-tile" data-tone="warn">
-          <div className="stat-num num">{awaitingCount}</div>
-          <div className="stat-label">รอประกาศเกณฑ์</div>
-        </div>
-        <div className="stat-tile" data-tone="accent">
-          <div className="stat-num num">{docsIncompleteCount}</div>
-          <div className="stat-label">เอกสารยังไม่ครบ</div>
-        </div>
-      </section>
+      {!readOnly && (
+        <>
+          <section className="stats">
+            <div className="stat-tile">
+              <div className="stat-num num">{programs.length}</div>
+              <div className="stat-label">รายการที่ติดตาม</div>
+            </div>
+            <div className="stat-tile" data-tone="danger">
+              <div className="stat-num num">{urgentCount}</div>
+              <div className="stat-label">ใกล้ปิดรับ (≤7 วัน)</div>
+            </div>
+            <div className="stat-tile" data-tone="warn">
+              <div className="stat-num num">{awaitingCount}</div>
+              <div className="stat-label">รอประกาศเกณฑ์</div>
+            </div>
+            <div className="stat-tile" data-tone="accent">
+              <div className="stat-num num">{docsIncompleteCount}</div>
+              <div className="stat-label">เอกสารยังไม่ครบ</div>
+            </div>
+          </section>
 
-      {programsWithFee.length > 0 && (
-        <div className="cost-panel">
-          <div className="cost-item"><span>ค่าสมัครรวมทั้งหมด</span><b>{totalFee.toLocaleString('th-TH')} บาท</b></div>
-          <div className="cost-item"><span>จ่ายแล้ว</span><b style={{ color: 'var(--success)' }}>{paidFee.toLocaleString('th-TH')} บาท</b></div>
-          <div className="cost-item"><span>ค้างจ่าย</span><b style={{ color: unpaidFee > 0 ? 'var(--danger)' : 'var(--text)' }}>{unpaidFee.toLocaleString('th-TH')} บาท</b></div>
-          <div className="cost-item"><span>จำนวนรายการที่ระบุค่าสมัคร</span><b>{programsWithFee.length} / {programs.length}</b></div>
-        </div>
-      )}
+          {programsWithFee.length > 0 && (
+            <div className="cost-panel">
+              <div className="cost-item"><span>ค่าสมัครรวมทั้งหมด</span><b>{totalFee.toLocaleString('th-TH')} บาท</b></div>
+              <div className="cost-item"><span>จ่ายแล้ว</span><b style={{ color: 'var(--success)' }}>{paidFee.toLocaleString('th-TH')} บาท</b></div>
+              <div className="cost-item"><span>ค้างจ่าย</span><b style={{ color: unpaidFee > 0 ? 'var(--danger)' : 'var(--text)' }}>{unpaidFee.toLocaleString('th-TH')} บาท</b></div>
+              <div className="cost-item"><span>จำนวนรายการที่ระบุค่าสมัคร</span><b>{programsWithFee.length} / {programs.length}</b></div>
+            </div>
+          )}
 
-      {unpaidPrograms.length > 0 && (
-        <div style={{ marginTop: 12, marginBottom: 8, padding: 16, borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-          <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)' }} />
-            รายการค้างชำระ ({unpaidPrograms.length})
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" style={{ display: 'grid', gap: 8 }}>
-            {unpaidPrograms.map(p => (
-              <div
-                key={p.id}
-                style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)',
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingRight: 12 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.university}</span>
-                  {p.major && <span style={{ color: 'var(--text-muted)', fontSize: 11.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{p.major}</span>}
-                </div>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--danger)', flexShrink: 0 }}>
-                  {p.applicationFee.toLocaleString('th-TH')} ฿
-                </span>
+          {unpaidPrograms.length > 0 && (
+            <div style={{ marginTop: 12, marginBottom: 8, padding: 16, borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)' }} />
+                รายการค้างชำระ ({unpaidPrograms.length})
               </div>
-            ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" style={{ display: 'grid', gap: 8 }}>
+                {unpaidPrograms.map(p => (
+                  <div
+                    key={p.id}
+                    style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingRight: 12 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.university}</span>
+                      {p.major && <span style={{ color: 'var(--text-muted)', fontSize: 11.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{p.major}</span>}
+                    </div>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--danger)', flexShrink: 0 }}>
+                      {p.applicationFee.toLocaleString('th-TH')} ฿
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="view-tabs" role="tablist">
+            <button className="view-tab" aria-pressed={view === 'list'} onClick={() => setView('list')}>รายการ</button>
+            <button className="view-tab" aria-pressed={view === 'compare'} onClick={() => setView('compare')}>เปรียบเทียบ</button>
+            <button className="view-tab" aria-pressed={view === 'timeline'} onClick={() => setView('timeline')}>ไทม์ไลน์</button>
           </div>
-        </div>
+        </>
       )}
 
-      <div className="view-tabs" role="tablist">
-        <button className="view-tab" aria-pressed={view === 'list'} onClick={() => setView('list')}>รายการ</button>
-        <button className="view-tab" aria-pressed={view === 'compare'} onClick={() => setView('compare')}>เปรียบเทียบ</button>
-        <button className="view-tab" aria-pressed={view === 'timeline'} onClick={() => setView('timeline')}>ไทม์ไลน์</button>
-      </div>
-
-      {view === 'list' && (
+      {(view === 'list' || readOnly) && (
         <>
           <div className="toolbar">
             <div className="search-wrap">
@@ -506,31 +512,33 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
             </select>
           </div>
 
-          <div className="toolbar" style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>สถานะ:</span>
-              <select 
-                className="sort-select" 
-                value={filterStatuses.size === 0 ? '__all__' : [...filterStatuses][0]} 
-                onChange={e => setFilterStatuses(e.target.value === '__all__' ? new Set() : new Set([e.target.value]))}
-                style={{ minWidth: 160 }}
-              >
-                <option value="__all__">ทั้งหมด</option>
-                {STATUS_ORDER.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>ตัวกรอง:</span>
-              <div className="filter-chips" style={{ marginBottom: 0 }}>
-                <button className="chip" aria-pressed={extraFilters.tcasFolio} onClick={() => handleToggleExtraFilter('tcasFolio')}>TCASFolio</button>
-                <button className="chip" aria-pressed={extraFilters.hasInterview} onClick={() => handleToggleExtraFilter('hasInterview')}>มีนัดสัมภาษณ์แล้ว</button>
-                <button className="chip" aria-pressed={extraFilters.starred} onClick={() => handleToggleExtraFilter('starred')}>★ ปักดาว</button>
+          {!readOnly && (
+            <div className="toolbar" style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>สถานะ:</span>
+                <select 
+                  className="sort-select" 
+                  value={filterStatuses.size === 0 ? '__all__' : [...filterStatuses][0]} 
+                  onChange={e => setFilterStatuses(e.target.value === '__all__' ? new Set() : new Set([e.target.value]))}
+                  style={{ minWidth: 160 }}
+                >
+                  <option value="__all__">ทั้งหมด</option>
+                  {STATUS_ORDER.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>ตัวกรอง:</span>
+                <div className="filter-chips" style={{ marginBottom: 0 }}>
+                  <button className="chip" aria-pressed={extraFilters.tcasFolio} onClick={() => handleToggleExtraFilter('tcasFolio')}>TCASFolio</button>
+                  <button className="chip" aria-pressed={extraFilters.hasInterview} onClick={() => handleToggleExtraFilter('hasInterview')}>มีนัดสัมภาษณ์แล้ว</button>
+                  <button className="chip" aria-pressed={extraFilters.starred} onClick={() => handleToggleExtraFilter('starred')}>★ ปักดาว</button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="result-count">พบ {filteredPrograms.length} รายการ</div>
 
@@ -556,64 +564,70 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
                         </div>
                       </div>
                       <div className="card-actions">
-                        <button className="star-btn" data-active={p.priority > 0} 
-                          style={p.priority > 0 ? { padding: '4px 10px', fontSize: 13, fontWeight: 700, gap: 4 } : {}}
-                          onClick={() => {
-                          const current = p.priority || 0;
-                          let newPrograms = [...programs];
-                          let updates: {id: string, priority: number}[] = [];
+                        {!readOnly && (
+                          <>
+                            <button className="star-btn" data-active={p.priority > 0} 
+                              style={p.priority > 0 ? { padding: '4px 10px', fontSize: 13, fontWeight: 700, gap: 4 } : {}}
+                              onClick={() => {
+                              const current = p.priority || 0;
+                              let newPrograms = [...programs];
+                              let updates: {id: string, priority: number}[] = [];
 
-                          if (current > 0) {
-                            newPrograms = newPrograms.map(pr => {
-                              const prP = pr.priority || 0;
-                              if (pr.id === p.id) {
-                                updates.push({ id: pr.id, priority: 0 });
-                                return { ...pr, priority: 0 };
+                              if (current > 0) {
+                                newPrograms = newPrograms.map(pr => {
+                                  const prP = pr.priority || 0;
+                                  if (pr.id === p.id) {
+                                    updates.push({ id: pr.id, priority: 0 });
+                                    return { ...pr, priority: 0 };
+                                  }
+                                  if (prP > current) {
+                                    updates.push({ id: pr.id, priority: prP - 1 });
+                                    return { ...pr, priority: prP - 1 };
+                                  }
+                                  return pr;
+                                });
+                                toast.success('ยกเลิกอันดับที่ชอบ');
+                              } else {
+                                const maxP = Math.max(0, ...newPrograms.map(pr => pr.priority || 0));
+                                const nextPriority = maxP + 1;
+                                newPrograms = newPrograms.map(pr => {
+                                  if (pr.id === p.id) {
+                                    updates.push({ id: pr.id, priority: nextPriority });
+                                    return { ...pr, priority: nextPriority };
+                                  }
+                                  return pr;
+                                });
+                                toast.success(`ตั้งเป็นอันดับที่ ${nextPriority}`);
                               }
-                              if (prP > current) {
-                                updates.push({ id: pr.id, priority: prP - 1 });
-                                return { ...pr, priority: prP - 1 };
-                              }
-                              return pr;
-                            });
-                            toast.success('ยกเลิกอันดับที่ชอบ');
-                          } else {
-                            const maxP = Math.max(0, ...newPrograms.map(pr => pr.priority || 0));
-                            const nextPriority = maxP + 1;
-                            newPrograms = newPrograms.map(pr => {
-                              if (pr.id === p.id) {
-                                updates.push({ id: pr.id, priority: nextPriority });
-                                return { ...pr, priority: nextPriority };
-                              }
-                              return pr;
-                            });
-                            toast.success(`ตั้งเป็นอันดับที่ ${nextPriority}`);
-                          }
 
-                          setPriorities(updates);
-                          setPrograms(newPrograms);
-                        }}>
-                          {p.priority > 0 ? `★ ${p.priority}` : '★'}
-                        </button>
-                        <button className="btn btn-ghost btn-icon" onClick={() => handleOpenForm(p)}>✎</button>
-                        <button className="btn btn-danger-ghost btn-icon" onClick={() => handleDelete(p.id)}>🗑</button>
+                              setPriorities(updates);
+                              setPrograms(newPrograms);
+                            }}>
+                              {p.priority > 0 ? `★ ${p.priority}` : '★'}
+                            </button>
+                            <button className="btn btn-ghost btn-icon" onClick={() => handleOpenForm(p)}>✎</button>
+                            <button className="btn btn-danger-ghost btn-icon" onClick={() => handleDelete(p.id)}>🗑</button>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="badge-row">
-                      {p.priority > 0 && <span className="badge" data-tone="warn">★ อันดับที่ชอบ {p.priority}</span>}
+                      {p.priority > 0 && !readOnly && <span className="badge" data-tone="warn">★ อันดับที่ชอบ {p.priority}</span>}
                       {p.round && <span className="badge">{p.round}</span>}
-                      <select 
-                        className="badge" 
-                        data-tone={STATUS_META[p.status]?.color || 'neutral'}
-                        value={p.status}
-                        onChange={(e) => handleQuickStatus(p.id, e.target.value)}
-                        style={{ cursor: 'pointer', outline: 'none', appearance: 'none', paddingRight: 24, backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke="gray" stroke-width="3" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', fontFamily: 'inherit' }}
-                      >
-                        {STATUS_ORDER.map(s => <option key={s} value={s} style={{ color: 'var(--text)', background: 'var(--bg)' }}>{s}</option>)}
-                      </select>
+                      {readOnly ? null : (
+                        <select 
+                          className="badge" 
+                          data-tone={STATUS_META[p.status]?.color || 'neutral'}
+                          value={p.status}
+                          onChange={(e) => handleQuickStatus(p.id, e.target.value)}
+                          style={{ cursor: 'pointer', outline: 'none', appearance: 'none', paddingRight: 24, backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke="gray" stroke-width="3" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', fontFamily: 'inherit' }}
+                        >
+                          {STATUS_ORDER.map(s => <option key={s} value={s} style={{ color: 'var(--text)', background: 'var(--bg)' }}>{s}</option>)}
+                        </select>
+                      )}
                       {p.tcasFolio && <span className="badge" data-tone="accent">ใช้ TCASFolio</span>}
                       
-                      {p.applicationFee != null && p.applicationFee > 0 && (
+                      {p.applicationFee != null && p.applicationFee > 0 && !readOnly && (
                         p.feePaid ? (
                           <span className="badge" data-tone="success">✅ จ่ายค่าสมัครแล้ว</span>
                         ) : (
@@ -635,51 +649,55 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
                       )}
                     </div>
                     
-                    <details className="more" style={{ marginTop: 12 }}>
-                      <summary><svg className="chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m9 6 6 6-6 6"/></svg> รายละเอียดเพิ่มเติม</summary>
-                      
-                      <div className="detail-section" style={{ marginTop: 8 }}>
-                        <h4 style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>เกณฑ์การคัดเลือก</h4>
-                        <CriteriaBars criteria={p.criteria || ''} />
-                      </div>
+                    {!readOnly && (
+                      <details className="more" style={{ marginTop: 12 }}>
+                        <summary><svg className="chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m9 6 6 6-6 6"/></svg> รายละเอียดเพิ่มเติม</summary>
+                        
+                        <div className="detail-section" style={{ marginTop: 8 }}>
+                          <h4 style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>เกณฑ์การคัดเลือก</h4>
+                          <CriteriaBars criteria={p.criteria || ''} />
+                        </div>
 
-                      {isFullDate(p.interviewDate) && (
-                        <div className="detail-section" style={{marginTop: 12}}>
-                          <h4 style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>ข้อมูลสัมภาษณ์</h4>
-                          <div className="doc-list" style={{ fontSize: 13.5 }}>
-                            <div className="doc-item"><span><b>วันที่:</b> {formatDate(p.interviewDate)}</span></div>
-                            <div className="doc-item"><span><b>รูปแบบ:</b> {INTERVIEW_FORMAT_LABEL[p.interviewFormat] || p.interviewFormat || '-'}</span></div>
-                            <div className="doc-item"><span><b>สถานที่:</b> {p.interviewPlace || '-'}</span></div>
+                        {isFullDate(p.interviewDate) && (
+                          <div className="detail-section" style={{marginTop: 12}}>
+                            <h4 style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>ข้อมูลสัมภาษณ์</h4>
+                            <div className="doc-list" style={{ fontSize: 13.5 }}>
+                              <div className="doc-item"><span><b>วันที่:</b> {formatDate(p.interviewDate)}</span></div>
+                              <div className="doc-item"><span><b>รูปแบบ:</b> {INTERVIEW_FORMAT_LABEL[p.interviewFormat] || p.interviewFormat || '-'}</span></div>
+                              <div className="doc-item"><span><b>สถานที่:</b> {p.interviewPlace || '-'}</span></div>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {p.documents && p.documents.length > 0 && (
-                        <div className="detail-section" style={{marginTop: 12}}>
-                          <h4 style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>เอกสารที่ต้องใช้</h4>
-                          <div className="doc-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            {p.documents.map((doc: any) => (
-                              <label key={doc.id} className="doc-item" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', fontSize: 13.5 }}>
-                                <input type="checkbox" checked={doc.done} onChange={(e) => {
-                                  toggleDocument(doc.id, e.target.checked)
-                                  setPrograms(programs.map(pr => pr.id === p.id ? { ...pr, documents: pr.documents.map((d: any) => d.id === doc.id ? { ...d, done: e.target.checked } : d) } : pr))
-                                  if (e.target.checked) toast.success('เตรียมเอกสารนี้แล้ว')
-                                }} style={{ marginTop: 2, accentColor: 'var(--text)' }} />
-                                <span style={{ textDecoration: doc.done ? 'line-through' : 'none', color: doc.done ? 'var(--text-faint)' : 'inherit' }}>{doc.text}</span>
-                              </label>
-                            ))}
+                        {p.documents && p.documents.length > 0 && (
+                          <div className="detail-section" style={{marginTop: 12}}>
+                            <h4 style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>เอกสารที่ต้องใช้</h4>
+                            <div className="doc-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {p.documents.map((doc: any) => (
+                                <label key={doc.id} className="doc-item" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: readOnly ? 'default' : 'pointer', fontSize: 13.5 }}>
+                                  {!readOnly && (
+                                    <input type="checkbox" checked={doc.done} onChange={(e) => {
+                                      toggleDocument(doc.id, e.target.checked)
+                                      setPrograms(programs.map(pr => pr.id === p.id ? { ...pr, documents: pr.documents.map((d: any) => d.id === doc.id ? { ...d, done: e.target.checked } : d) } : pr))
+                                      if (e.target.checked) toast.success('เตรียมเอกสารนี้แล้ว')
+                                    }} style={{ marginTop: 2, accentColor: 'var(--text)' }} />
+                                  )}
+                                  <span style={{ textDecoration: doc.done && !readOnly ? 'line-through' : 'none', color: doc.done && !readOnly ? 'var(--text-faint)' : 'inherit' }}>{doc.text}</span>
+                                </label>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      <div className="detail-section" style={{marginTop: 12}}>
-                        <div style={{display:'flex', gap: 8, flexWrap: 'wrap', marginBottom: p.note ? 4 : 0}}>
-                          <a href={p.admissionLink || getAdmissionUrl(p.university)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'#10b981', color:'#fff', fontWeight: 500}}>🏛️ ระบบ Admission</a>
-                          {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'var(--text)', color:'#fff', fontWeight: 500}}>🔗 ดูประกาศฉบับเต็ม</a>}
+                        <div className="detail-section" style={{marginTop: 12}}>
+                          <div style={{display:'flex', gap: 8, flexWrap: 'wrap', marginBottom: p.note ? 4 : 0}}>
+                            <a href={p.admissionLink || getAdmissionUrl(p.university)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'#10b981', color:'#fff', fontWeight: 500}}>🏛️ ระบบ Admission</a>
+                            {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'var(--text)', color:'#fff', fontWeight: 500}}>🔗 ดูประกาศฉบับเต็ม</a>}
+                          </div>
+                          {p.note && <div style={{marginTop: 8, fontSize: 13.5, color: 'var(--text-muted)'}}><b>บันทึก:</b> {p.note}</div>}
                         </div>
-                        {p.note && <div style={{marginTop: 8, fontSize: 13.5, color: 'var(--text-muted)'}}><b>บันทึก:</b> {p.note}</div>}
-                      </div>
-                    </details>
+                      </details>
+                    )}
                   </div>
                 </article>
               )
@@ -689,8 +707,8 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
       )}
 
       {/* Basic implementations for compare & timeline can go here */}
-      {view === 'compare' && <CompareView programs={programs} />}
-      {view === 'timeline' && <TimelineView programs={filteredPrograms} />}
+      {!readOnly && view === 'compare' && <CompareView programs={programs} />}
+      {!readOnly && view === 'timeline' && <TimelineView programs={filteredPrograms} />}
 
       {formOpen && (
         <ProgramFormModal
@@ -701,11 +719,22 @@ export default function TrackerApp({ initialPrograms, suggestions }: { initialPr
             const loading = toast.loading('กำลังบันทึกข้อมูล...')
             if (editingProgram) {
               await updateProgram(editingProgram.id, data)
-              setPrograms(programs.map(p => p.id === editingProgram.id ? { ...p, ...data } : p))
+              setPrograms(programs.map(p => {
+                let updated = p.id === editingProgram.id ? { ...p, ...data } : p;
+                if (data.university && updated.university === data.university && data.logoUrl !== undefined) {
+                  updated = { ...updated, logoUrl: data.logoUrl === '' ? null : data.logoUrl };
+                }
+                return updated;
+              }))
               toast.success('แก้ไขข้อมูลเรียบร้อย', { id: loading })
             } else {
               const newProgram = await createProgram(data)
-              setPrograms([...programs, newProgram])
+              setPrograms([...programs, newProgram].map(p => {
+                if (newProgram.university && p.university === newProgram.university && newProgram.logoUrl) {
+                  return { ...p, logoUrl: newProgram.logoUrl };
+                }
+                return p;
+              }))
               toast.success('เพิ่มรายการใหม่เรียบร้อย', { id: loading })
             }
             setFormOpen(false)
