@@ -401,25 +401,26 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
             await deleteProgram(id)
             // Compact priority gaps: if the deleted program had priority > 0,
             // shift all higher-priority programs down by 1
+            let updatesToApply: { id: string; priority: number }[] = []
             setPrograms(prev => {
+              updatesToApply = [] // reset in case of StrictMode double-invocation
               const deleted = prev.find(p => p.id === id)
               const deletedPriority = deleted?.priority || 0
               const remaining = prev.filter(p => p.id !== id)
               if (deletedPriority > 0) {
-                const updates: { id: string; priority: number }[] = []
                 const compacted = remaining.map(p => {
                   const pPriority = p.priority || 0
                   if (pPriority > deletedPriority) {
-                    updates.push({ id: p.id, priority: pPriority - 1 })
+                    updatesToApply.push({ id: p.id, priority: pPriority - 1 })
                     return { ...p, priority: pPriority - 1 }
                   }
                   return p
                 })
-                if (updates.length > 0) setPriorities(updates)
                 return compacted
               }
               return remaining
             })
+            if (updatesToApply.length > 0) setPriorities(updatesToApply)
             toast.success('ลบรายการสำเร็จ', { id: loading })
           }} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff' }}>ลบเลย</button>
         </div>
@@ -428,12 +429,15 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
   }
 
   const handleToggleStar = (id: string) => {
+    let message = ''
+    let updatesToApply: { id: string; priority: number }[] = []
+
     setPrograms(prev => {
+      updatesToApply = []
       const target = prev.find(p => p.id === id)
       if (!target) return prev
 
       const current = target.priority || 0
-      let updates: { id: string; priority: number }[] = []
       let next: typeof prev
 
       if (current > 0) {
@@ -441,33 +445,35 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
         next = prev.map(p => {
           const pP = p.priority || 0
           if (p.id === id) {
-            updates.push({ id: p.id, priority: 0 })
+            updatesToApply.push({ id: p.id, priority: 0 })
             return { ...p, priority: 0 }
           }
           if (pP > current) {
-            updates.push({ id: p.id, priority: pP - 1 })
+            updatesToApply.push({ id: p.id, priority: pP - 1 })
             return { ...p, priority: pP - 1 }
           }
           return p
         })
-        toast.success('ยกเลิกอันดับที่ชอบ')
+        message = 'ยกเลิกอันดับที่ชอบ'
       } else {
         // Star: assign next available priority (max + 1)
         const maxP = Math.max(0, ...prev.map(p => p.priority || 0))
         const nextPriority = maxP + 1
         next = prev.map(p => {
           if (p.id === id) {
-            updates.push({ id: p.id, priority: nextPriority })
+            updatesToApply.push({ id: p.id, priority: nextPriority })
             return { ...p, priority: nextPriority }
           }
           return p
         })
-        toast.success(`ตั้งเป็นอันดับที่ ${nextPriority}`)
+        message = `ตั้งเป็นอันดับที่ ${nextPriority}`
       }
 
-      setPriorities(updates)
       return next
     })
+
+    if (message) toast.success(message)
+    if (updatesToApply.length > 0) setPriorities(updatesToApply)
   }
 
   const handleQuickStatus = async (id: string, nextStatus: string) => {
