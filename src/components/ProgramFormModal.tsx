@@ -65,9 +65,36 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
   const [formData, setFormData] = useState<any>({
     university: '', faculty: '', major: '', curriculum: '', round: '', status: 'รอประกาศเกณฑ์',
     openDate: null, closeDate: null, resultDate: null, interviewDate: null, confirmationDate: null,
-    interviewFormat: '', interviewPlace: '', criteria: '', link: '', admissionLink: '', logoUrl: '', note: '', tcasFolio: false,
+    interviewFormat: '', interviewPlace: '', criteria: '', criteriaItems: [], link: '', admissionLink: '', logoUrl: '', note: '', tcasFolio: false,
     applicationFee: '', feePaid: false, documents: []
   })
+
+  const parseCriteriaToItems = (text: string) => {
+    if (!text) return []
+    const items = []
+    const parts = text.split(',')
+    for (const part of parts) {
+      const p = part.trim()
+      if (!p) continue
+      const match = p.match(/^(.*?)\s*(\d+(?:\.\d+)?)\s*%$/)
+      if (match) {
+        items.push({ id: Date.now().toString() + Math.random().toString(), label: match[1].trim(), pct: match[2] })
+      } else {
+        items.push({ id: Date.now().toString() + Math.random().toString(), label: p, pct: '' })
+      }
+    }
+    return items
+  }
+
+  const stringifyCriteriaItems = (items: any[]) => {
+    return items
+      .filter(it => it?.label?.trim() !== '')
+      .map(it => {
+        const p = it.pct?.trim() || ''
+        return p ? `${it.label.trim()} ${p}%` : it.label.trim()
+      })
+      .join(', ')
+  }
 
   const parseDateStr = (str: string | null | undefined) => {
     if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return null
@@ -92,6 +119,7 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
         interviewFormat: editingProgram.interviewFormat || '',
         interviewPlace: editingProgram.interviewPlace || '',
         criteria: editingProgram.criteria || '',
+        criteriaItems: parseCriteriaToItems(editingProgram.criteria || ''),
         link: editingProgram.link || '',
         admissionLink: editingProgram.admissionLink || '',
         logoUrl: editingProgram.logoUrl || '',
@@ -127,6 +155,7 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
       resultDate: formatDateObj(formData.resultDate),
       interviewDate: formatDateObj(formData.interviewDate),
       confirmationDate: formatDateObj(formData.confirmationDate),
+      criteria: stringifyCriteriaItems(formData.criteriaItems),
       applicationFee: formData.applicationFee ? Math.round(parseFloat(formData.applicationFee)) : null,
       documents: formData.documents.filter((d: any) => d.text.trim() !== '').map((d: any) => ({ text: d.text, done: d.done }))
     }
@@ -281,7 +310,50 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
           {/* STEP 3 */}
           {step === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeIn 0.3s ease' }}>
-              <div><label style={lbl}>เกณฑ์การคัดเลือก</label><input value={formData.criteria} onChange={e => updateFields({criteria: e.target.value})} placeholder="เช่น Portfolio 50%, GPAX 30%, Interview 20%" style={inp} /></div>
+              <div>
+                <label style={lbl}>เกณฑ์การคัดเลือก</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                  {formData.criteriaItems.map((item: any, i: number) => (
+                    <div key={item.id || i} style={{ display: 'flex', gap: 8 }}>
+                      <input 
+                        value={item.label} 
+                        onChange={e => {
+                          const newItems = [...formData.criteriaItems]
+                          newItems[i] = { ...newItems[i], label: e.target.value }
+                          updateFields({ criteriaItems: newItems })
+                        }} 
+                        style={{ ...inp, flex: 1, padding: '6px 10px' }} 
+                        placeholder="เช่น Portfolio, GPAX, สัมภาษณ์" 
+                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '110px' }}>
+                        <input 
+                          type="number"
+                          value={item.pct} 
+                          onChange={e => {
+                            const newItems = [...formData.criteriaItems]
+                            newItems[i] = { ...newItems[i], pct: e.target.value }
+                            updateFields({ criteriaItems: newItems })
+                          }} 
+                          style={{ ...inp, flex: 1, padding: '6px 10px', textAlign: 'center' }} 
+                          placeholder="%" 
+                        />
+                        <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 600 }}>%</span>
+                      </div>
+                      <button type="button" onClick={() => {
+                        const newItems = formData.criteriaItems.filter((_: any, idx: number) => idx !== i)
+                        updateFields({ criteriaItems: newItems })
+                      }} style={{ padding: '0 12px', background: 'var(--surface-3)', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'var(--danger)', fontSize: 16 }}>
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={() => {
+                  updateFields({ criteriaItems: [...formData.criteriaItems, { id: Date.now().toString() + Math.random().toString(), label: '', pct: '' }] })
+                }} style={{ padding: '8px 12px', fontSize: 13, background: 'var(--surface-3)', color: 'var(--text)', border: '1px dashed var(--border)', borderRadius: 8, cursor: 'pointer', fontWeight: 600, width: '100%', textAlign: 'center' }}>
+                  + เพิ่มเกณฑ์
+                </button>
+              </div>
               <div><label style={lbl}>ลิงก์ประกาศฉบับเต็ม (URL)</label><input type="url" value={formData.link} onChange={e => updateFields({link: e.target.value})} placeholder="https://..." style={inp} /></div>
               <div><label style={lbl}>ลิงก์ระบบ Admission มหาวิทยาลัย (ถ้ามี)</label><input type="url" value={formData.admissionLink} onChange={e => updateFields({admissionLink: e.target.value})} placeholder="https://..." style={inp} /></div>
               

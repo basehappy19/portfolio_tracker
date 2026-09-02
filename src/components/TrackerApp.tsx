@@ -409,6 +409,38 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
     if (paid) toast.success('ทำเครื่องหมายจ่ายค่าสมัครแล้ว')
   }
 
+  const handleExportCSV = () => {
+    const headers = ['มหาวิทยาลัย', 'คณะ', 'สาขา', 'หลักสูตร', 'รอบ', 'สถานะ', 'เปิดรับสมัคร', 'ปิดรับสมัคร', 'ประกาศผล', 'วันสัมภาษณ์', 'หมดเขตยืนยันสิทธิ์', 'เกณฑ์การคัดเลือก', 'ลิงก์ประกาศ', 'ค่าสมัคร']
+    const rows = filteredPrograms.map(p => [
+      p.university || '',
+      p.faculty || '',
+      p.major || '',
+      p.curriculum || '',
+      p.round || '',
+      p.status || '',
+      p.openDate ? formatDate(p.openDate) : '',
+      p.closeDate ? formatDate(p.closeDate) : '',
+      p.resultDate ? formatDate(p.resultDate) : '',
+      p.interviewDate ? formatDate(p.interviewDate) : '',
+      p.confirmationDate ? formatDate(p.confirmationDate) : '',
+      p.criteria || '',
+      p.link || '',
+      p.applicationFee?.toString() || ''
+    ])
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map((cell: any) => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','))
+    ].join('\n')
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `TCAS_Tracker_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="app">
       <header className="topbar">
@@ -420,7 +452,11 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
               <div className="tagline hidden sm:block">ติดตามการยื่นสมัคร Portfolio ทุกที่ ไม่ให้พลาดกำหนดการ</div>
             </div>
           </div>
-          <div className="topbar-actions">
+          <div className="topbar-actions" style={{ display: 'flex', gap: 8 }}>
+            <button className="btn !p-2 sm:!px-[15px] sm:!py-[9px] !rounded-full aspect-square sm:aspect-auto flex justify-center items-center" onClick={handleExportCSV} style={{background: 'var(--surface-3)', border: '1px solid var(--border)'}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:w-[14px] sm:h-[14px]"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span className="hidden sm:inline" style={{marginLeft: 6}}>ส่งออก CSV</span>
+            </button>
             {!readOnly && (
               <button className="btn btn-primary !p-2 sm:!px-[15px] sm:!py-[9px] !rounded-full aspect-square sm:aspect-auto flex justify-center items-center" onClick={() => handleOpenForm()}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="sm:w-[14px] sm:h-[14px]"><path d="M12 4v16M4 12h16"/></svg>
@@ -1010,7 +1046,7 @@ function CompareView({ programs }: { programs: any[] }) {
     { label: 'ปิดรับสมัคร', render: p => {
       const d = formatDate(p.closeDate)
       const urgent = p.closeDate && p.closeDate >= new Date().toISOString().slice(0,10)
-        && (new Date(p.closeDate).getTime() - Date.now()) / 86400000 <= 7
+        && (new Date(p.closeDate).getTime() - new Date().getTime()) / 86400000 <= 7
       return <span style={{ color: urgent ? '#ef4444' : 'inherit', fontWeight: urgent ? 700 : 400 }}>{d}</span>
     }},
     { label: 'ประกาศผล', render: p => formatDate(p.resultDate) },
