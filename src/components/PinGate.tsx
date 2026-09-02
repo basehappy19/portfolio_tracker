@@ -60,7 +60,9 @@ export default function PinGate({ children }: { children: React.ReactNode }) {
   }
 
   // Still checking
-  if (authed === null) return null
+  if (authed === null) {
+    return <div style={{ visibility: 'hidden', opacity: 0, pointerEvents: 'none' }}>{children}</div>
+  }
 
   // Authenticated
   if (authed) return <>{children}</>

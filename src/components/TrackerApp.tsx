@@ -303,9 +303,9 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
     Object.entries(cur).forEach(([k, v]) => { if (v) p.set(k, v) })
     const newUrl = '?' + p.toString()
     if (window.location.search !== newUrl) {
-      window.history.replaceState(null, '', newUrl)
+      router.replace(newUrl, { scroll: false })
     }
-  }, [view, search, sort, filterStatuses, extraFilters])
+  }, [view, search, sort, filterStatuses, extraFilters, router])
 
   useEffect(() => { syncUrl() }, [view, search, sort, filterStatuses, extraFilters]) // eslint-disable-line
 
