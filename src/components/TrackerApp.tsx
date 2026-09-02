@@ -260,6 +260,16 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
   const router = useRouter()
   const params = useSearchParams()
 
+  // Dark mode
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('theme') === 'dark'
+  })
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : '')
+    localStorage.setItem('theme', darkMode ? 'dark' : 'light')
+  }, [darkMode])
+
   // URL-backed state
   const [filterStatuses, setFilterStatuses] = useState<Set<string>>(() => {
     const f = params.get('filter')
@@ -275,6 +285,7 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
   const [view, setView] = useState(() => params.get('view') || 'list')
   const [formOpen, setFormOpen] = useState(false)
   const [editingProgram, setEditingProgram] = useState<any>(null)
+  const [showCompleted, setShowCompleted] = useState(false)
 
   // Sync state → URL (debounce-free, replace not push to avoid polluting history)
   const syncUrl = useCallback((overrides: Record<string, string | null> = {}) => {
@@ -453,6 +464,16 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
             </div>
           </div>
           <div className="topbar-actions" style={{ display: 'flex', gap: 8 }}>
+            {/* Dark mode toggle */}
+            <button
+              onClick={() => setDarkMode(d => !d)}
+              title={darkMode ? 'สลับโหมดสว่าง' : 'สลับโหมดมืด'}
+              className="btn !p-2 sm:!px-[13px] sm:!py-[9px] !rounded-full aspect-square sm:aspect-auto flex justify-center items-center"
+              style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', fontSize: 16 }}
+              aria-label={darkMode ? 'Light mode' : 'Dark mode'}
+            >
+              {darkMode ? '☀️' : '🌙'}
+            </button>
             <button className="btn !p-2 sm:!px-[15px] sm:!py-[9px] !rounded-full aspect-square sm:aspect-auto flex justify-center items-center" onClick={handleExportCSV} style={{background: 'var(--surface-3)', border: '1px solid var(--border)'}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:w-[14px] sm:h-[14px]"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               <span className="hidden sm:inline" style={{marginLeft: 6}}>ส่งออก CSV</span>
@@ -576,11 +597,19 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
             </div>
           )}
 
-          <div className="result-count">พบ {filteredPrograms.length} รายการ</div>
+          {/* TERMINAL statuses — collapsed by default */}
+          {(() => {
+            const TERMINAL = ['ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'สละสิทธิ์', 'ยกเลิก/ไม่ยื่น']
+            const activePrograms    = filteredPrograms.filter(p => !TERMINAL.includes(p.status))
+            const completedPrograms = filteredPrograms.filter(p =>  TERMINAL.includes(p.status))
 
-          <div className="card-list">
-            {filteredPrograms.map(p => {
+            const renderCard = (p: any) => {
               const u = computeUrgency(p)
+              const docsTotal = p.documents?.length || 0
+              const docsDone  = p.documents?.filter((d: any) => d.done).length || 0
+              const docsPct   = docsTotal > 0 ? Math.round((docsDone / docsTotal) * 100) : null
+              const docsColor = docsTotal > 0 && docsDone === docsTotal ? 'var(--success)' : docsDone > 0 ? '#f59e0b' : 'var(--surface-3)'
+
               return (
                 <article key={p.id} className="card" style={{ borderTop: `3px solid ${getUniColor(p.university)}` }}>
                   <div className="card-urgency" data-tone={u.tone}>
@@ -684,6 +713,18 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                         <div className="date-item"><b>สัมภาษณ์</b><span>{formatDate(p.interviewDate)}</span></div>
                       )}
                     </div>
+
+                    {/* Document progress bar — inline, always visible */}
+                    {docsTotal > 0 && !readOnly && (
+                      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ flex: 1, height: 5, borderRadius: 99, background: 'var(--surface-3)', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${docsPct}%`, background: docsColor, borderRadius: 99, transition: 'width 0.4s ease' }} />
+                        </div>
+                        <span style={{ fontSize: 11.5, color: docsDone === docsTotal ? 'var(--success)' : 'var(--text-faint)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          {docsDone}/{docsTotal} เอกสาร
+                        </span>
+                      </div>
+                    )}
                     
                     {!readOnly && (
                       <details className="more" style={{ marginTop: 12 }}>
@@ -737,8 +778,54 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                   </div>
                 </article>
               )
-            })}
-          </div>
+            }
+
+            return (
+              <>
+                <div className="result-count">พบ {filteredPrograms.length} รายการ{completedPrograms.length > 0 ? ` (กำลังดำเนินการ ${activePrograms.length} / เสร็จแล้ว ${completedPrograms.length})` : ''}</div>
+
+                {/* Active programs */}
+                <div className="card-list">
+                  {activePrograms.map(renderCard)}
+                  {activePrograms.length === 0 && filteredPrograms.length > 0 && (
+                    <div className="empty-state" style={{ padding: '24px 0' }}>
+                      <div style={{ fontSize: 13, color: 'var(--text-faint)' }}>ไม่มีรายการที่กำลังดำเนินการ</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Completed programs — collapsible */}
+                {completedPrograms.length > 0 && (
+                  <div style={{ marginTop: 20 }}>
+                    <button
+                      onClick={() => setShowCompleted(v => !v)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                        padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)',
+                        background: 'var(--surface-2)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                        color: 'var(--text-muted)', fontFamily: 'inherit',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"
+                        style={{ transform: showCompleted ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', flexShrink: 0 }}>
+                        <path d="m9 6 6 6-6 6"/>
+                      </svg>
+                      รายการที่เสร็จสิ้นแล้ว ({completedPrograms.length} รายการ)
+                      <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 400, opacity: 0.7 }}>
+                        {showCompleted ? 'คลิกเพื่อพับ' : 'คลิกเพื่อดู'}
+                      </span>
+                    </button>
+                    {showCompleted && (
+                      <div className="card-list" style={{ marginTop: 10, animation: 'fadeSlideUp 0.25s ease both', opacity: 0.75 }}>
+                        {completedPrograms.map(renderCard)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )
+          })()}
         </>
       )}
 
@@ -805,8 +892,9 @@ type TlEvent = {
 function TimelineView({ programs }: { programs: any[] }) {
   const today = new Date().toISOString().slice(0, 10)
   const [showPast, setShowPastRaw] = useState(() => {
-    if (typeof window === 'undefined') return true
-    return localStorage.getItem('tl_showPast') !== '0'
+    if (typeof window === 'undefined') return false
+    const saved = localStorage.getItem('tl_showPast')
+    return saved === '1' // default false (ซ่อนวันที่ผ่านมาแล้ว)
   })
   const setShowPast = (v: boolean) => {
     localStorage.setItem('tl_showPast', v ? '1' : '0')
