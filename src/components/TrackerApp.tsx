@@ -694,7 +694,7 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                         <UniversityLogo university={p.university} logoUrl={p.logoUrl} size={32} />
                         <div>
                           <div className="card-uni">{p.university}</div>
-                          <div className="card-sub">{[p.faculty, p.major].filter(Boolean).join(' · ')}</div>
+                          <div className="card-sub">{[p.faculty, p.major, p.curriculum].filter(Boolean).join(' · ')}</div>
                         </div>
                       </div>
                       <div className="card-actions">
@@ -1150,12 +1150,6 @@ function CompareView({ programs }: { programs: any[] }) {
   const picked = programs.filter(p => selected.includes(p.id))
 
   const ROW_DEFS: { label: string; render: (p: any) => React.ReactNode }[] = [
-    { label: 'มหาวิทยาลัย', render: p => (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-        <UniversityLogo university={p.university} logoUrl={p.logoUrl} size={24} />
-        {p.university}
-      </div>
-    ) },
     { label: 'คณะ', render: p => p.faculty || '—' },
     { label: 'สาขา', render: p => p.major || '—' },
     { label: 'หลักสูตร', render: p => <span style={{ fontSize: 12 }}>{p.curriculum || '—'}</span> },
