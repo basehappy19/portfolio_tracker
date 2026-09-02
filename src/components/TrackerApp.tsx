@@ -399,12 +399,75 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
             toast.dismiss(t.id)
             const loading = toast.loading('กำลังลบ...')
             await deleteProgram(id)
-            setPrograms(programs.filter(p => p.id !== id))
+            // Compact priority gaps: if the deleted program had priority > 0,
+            // shift all higher-priority programs down by 1
+            setPrograms(prev => {
+              const deleted = prev.find(p => p.id === id)
+              const deletedPriority = deleted?.priority || 0
+              const remaining = prev.filter(p => p.id !== id)
+              if (deletedPriority > 0) {
+                const updates: { id: string; priority: number }[] = []
+                const compacted = remaining.map(p => {
+                  const pPriority = p.priority || 0
+                  if (pPriority > deletedPriority) {
+                    updates.push({ id: p.id, priority: pPriority - 1 })
+                    return { ...p, priority: pPriority - 1 }
+                  }
+                  return p
+                })
+                if (updates.length > 0) setPriorities(updates)
+                return compacted
+              }
+              return remaining
+            })
             toast.success('ลบรายการสำเร็จ', { id: loading })
           }} style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff' }}>ลบเลย</button>
         </div>
       </div>
     ), { duration: Infinity })
+  }
+
+  const handleToggleStar = (id: string) => {
+    setPrograms(prev => {
+      const target = prev.find(p => p.id === id)
+      if (!target) return prev
+
+      const current = target.priority || 0
+      let updates: { id: string; priority: number }[] = []
+      let next: typeof prev
+
+      if (current > 0) {
+        // Un-star: set to 0, compact gaps for everything above
+        next = prev.map(p => {
+          const pP = p.priority || 0
+          if (p.id === id) {
+            updates.push({ id: p.id, priority: 0 })
+            return { ...p, priority: 0 }
+          }
+          if (pP > current) {
+            updates.push({ id: p.id, priority: pP - 1 })
+            return { ...p, priority: pP - 1 }
+          }
+          return p
+        })
+        toast.success('ยกเลิกอันดับที่ชอบ')
+      } else {
+        // Star: assign next available priority (max + 1)
+        const maxP = Math.max(0, ...prev.map(p => p.priority || 0))
+        const nextPriority = maxP + 1
+        next = prev.map(p => {
+          if (p.id === id) {
+            updates.push({ id: p.id, priority: nextPriority })
+            return { ...p, priority: nextPriority }
+          }
+          return p
+        })
+        toast.success(`ตั้งเป็นอันดับที่ ${nextPriority}`)
+      }
+
+      setPriorities(updates)
+      return next
+    })
   }
 
   const handleQuickStatus = async (id: string, nextStatus: string) => {
@@ -633,41 +696,7 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                           <>
                             <button className="star-btn" data-active={p.priority > 0} 
                               style={p.priority > 0 ? { padding: '4px 10px', fontSize: 13, fontWeight: 700, gap: 4 } : {}}
-                              onClick={() => {
-                              const current = p.priority || 0;
-                              let newPrograms = [...programs];
-                              let updates: {id: string, priority: number}[] = [];
-
-                              if (current > 0) {
-                                newPrograms = newPrograms.map(pr => {
-                                  const prP = pr.priority || 0;
-                                  if (pr.id === p.id) {
-                                    updates.push({ id: pr.id, priority: 0 });
-                                    return { ...pr, priority: 0 };
-                                  }
-                                  if (prP > current) {
-                                    updates.push({ id: pr.id, priority: prP - 1 });
-                                    return { ...pr, priority: prP - 1 };
-                                  }
-                                  return pr;
-                                });
-                                toast.success('ยกเลิกอันดับที่ชอบ');
-                              } else {
-                                const maxP = Math.max(0, ...newPrograms.map(pr => pr.priority || 0));
-                                const nextPriority = maxP + 1;
-                                newPrograms = newPrograms.map(pr => {
-                                  if (pr.id === p.id) {
-                                    updates.push({ id: pr.id, priority: nextPriority });
-                                    return { ...pr, priority: nextPriority };
-                                  }
-                                  return pr;
-                                });
-                                toast.success(`ตั้งเป็นอันดับที่ ${nextPriority}`);
-                              }
-
-                              setPriorities(updates);
-                              setPrograms(newPrograms);
-                            }}>
+                              onClick={() => handleToggleStar(p.id)}>
                               {p.priority > 0 ? `★ ${p.priority}` : '★'}
                             </button>
                             <button className="btn btn-ghost btn-icon" onClick={() => handleOpenForm(p)}>✎</button>
