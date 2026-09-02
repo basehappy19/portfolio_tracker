@@ -148,14 +148,17 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
       return `${y}-${m}-${day}`
     }
     
+    // criteriaItems เป็น UI-only state — ไม่ส่งไป server
+    const { criteriaItems, ...formDataWithoutCriteriaItems } = formData
+
     const finalData = {
-      ...formData,
+      ...formDataWithoutCriteriaItems,
       openDate: formatDateObj(formData.openDate),
       closeDate: formatDateObj(formData.closeDate),
       resultDate: formatDateObj(formData.resultDate),
       interviewDate: formatDateObj(formData.interviewDate),
       confirmationDate: formatDateObj(formData.confirmationDate),
-      criteria: stringifyCriteriaItems(formData.criteriaItems),
+      criteria: stringifyCriteriaItems(criteriaItems),
       applicationFee: formData.applicationFee ? Math.round(parseFloat(formData.applicationFee)) : null,
       documents: formData.documents.filter((d: any) => d.text.trim() !== '').map((d: any) => ({ text: d.text, done: d.done }))
     }
