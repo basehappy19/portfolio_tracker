@@ -41,7 +41,8 @@ const selectStyles = {
     fontSize: 14, 
     zIndex: 9999,
     borderRadius: 8,
-    boxShadow: 'var(--shadow-lg)'
+    boxShadow: 'var(--shadow-lg)',
+    background: 'var(--surface)'
   }),
   option: (base: any, state: any) => ({
     ...base,
@@ -50,12 +51,20 @@ const selectStyles = {
       : state.isFocused 
         ? 'var(--surface-3)' 
         : 'transparent',
-    color: state.isSelected ? '#fff' : 'var(--text)',
+    color: state.isSelected ? 'var(--bg)' : 'var(--text)',
     cursor: 'pointer',
     '&:active': {
       background: 'var(--text)',
-      color: '#fff'
+      color: 'var(--bg)'
     }
+  }),
+  singleValue: (base: any) => ({
+    ...base,
+    color: 'var(--text)'
+  }),
+  input: (base: any) => ({
+    ...base,
+    color: 'var(--text)'
   })
 }
 
@@ -168,7 +177,7 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
 
   return (
     <div className="modal-overlay" style={{position:'fixed', top:0, left:0, right:0, bottom:0, backgroundColor:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex: 1000, padding: 16}}>
-      <div className="modal" style={{backgroundColor:'#fff', borderRadius:16, width:'100%', maxWidth:560, maxHeight:'92vh', display:'flex', flexDirection:'column', position:'relative', animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'}}>
+      <div className="modal" style={{backgroundColor:'var(--surface)', borderRadius:16, width:'100%', maxWidth:560, maxHeight:'92vh', display:'flex', flexDirection:'column', position:'relative', animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'}}>
         <button onClick={onClose} style={{position:'absolute', top:16, right:16, background:'none', border:'none', fontSize:20, cursor:'pointer', color:'var(--text-faint)'}}>✕</button>
         
         <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid var(--border)' }}>
@@ -417,7 +426,7 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
                 return
               }
               setStep(step + 1)
-            }} style={{padding:'10px 24px', borderRadius:8, border:'none', background:'var(--text)', color:'#fff', fontWeight:600, cursor:'pointer', fontSize:14}}>
+            }} style={{padding:'10px 24px', borderRadius:8, border:'none', background:'var(--text)', color:'var(--bg)', fontWeight:600, cursor:'pointer', fontSize:14}}>
               ถัดไป
             </button>
           ) : (

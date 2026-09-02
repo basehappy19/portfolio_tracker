@@ -537,18 +537,18 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
             <button
               onClick={() => setDarkMode(d => !d)}
               title={darkMode ? 'สลับโหมดสว่าง' : 'สลับโหมดมืด'}
-              className="btn !p-2 sm:!px-[13px] sm:!py-[9px] !rounded-full aspect-square sm:aspect-auto flex justify-center items-center"
+              className="btn !w-[38px] !h-[38px] sm:!w-auto sm:!h-auto !p-0 sm:!px-[15px] sm:!py-[9px] !rounded-full flex justify-center items-center"
               style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', fontSize: 16 }}
               aria-label={darkMode ? 'Light mode' : 'Dark mode'}
             >
               {darkMode ? '☀️' : '🌙'}
             </button>
-            <button className="btn !p-2 sm:!px-[15px] sm:!py-[9px] !rounded-full aspect-square sm:aspect-auto flex justify-center items-center" onClick={handleExportCSV} style={{background: 'var(--surface-3)', border: '1px solid var(--border)'}}>
+            <button className="btn !w-[38px] !h-[38px] sm:!w-auto sm:!h-auto !p-0 sm:!px-[15px] sm:!py-[9px] !rounded-full flex justify-center items-center" onClick={handleExportCSV} style={{background: 'var(--surface-3)', border: '1px solid var(--border)'}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:w-[14px] sm:h-[14px]"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               <span className="hidden sm:inline" style={{marginLeft: 6}}>ส่งออก CSV</span>
             </button>
             {!readOnly && (
-              <button className="btn btn-primary !p-2 sm:!px-[15px] sm:!py-[9px] !rounded-full aspect-square sm:aspect-auto flex justify-center items-center" onClick={() => handleOpenForm()}>
+              <button className="btn btn-primary !w-[38px] !h-[38px] sm:!w-auto sm:!h-auto !p-0 sm:!px-[15px] sm:!py-[9px] !rounded-full flex justify-center items-center" onClick={() => handleOpenForm()}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="sm:w-[14px] sm:h-[14px]"><path d="M12 4v16M4 12h16"/></svg>
                 <span className="hidden sm:inline">เพิ่มรายการ</span>
               </button>

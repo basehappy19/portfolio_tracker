@@ -166,7 +166,14 @@ export async function updateProgram(id: string, data: any) {
     }
   })
   revalidatePath('/')
-  return serializeDates(updated)
+  return {
+    ...updated,
+    university: updated.university?.name || '',
+    faculty: updated.faculty?.name || '',
+    major: updated.major?.name || '',
+    curriculum: updated.curriculum?.name || '',
+    round: updated.round?.name || '',
+  }
 }
 
 export async function deleteProgram(id: string) {
