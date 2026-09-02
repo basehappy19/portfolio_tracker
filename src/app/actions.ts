@@ -146,7 +146,7 @@ export async function updateProgram(id: string, data: any) {
     }
   }
 
-  await prisma.program.update({
+  const updated = await prisma.program.update({
     where: { id },
     data: {
       ...rest,
@@ -155,9 +155,18 @@ export async function updateProgram(id: string, data: any) {
         deleteMany: {},
         create: documents || []
       }
+    },
+    include: {
+      documents: true,
+      university: true,
+      faculty: true,
+      major: true,
+      curriculum: true,
+      round: true
     }
   })
   revalidatePath('/')
+  return serializeDates(updated)
 }
 
 export async function deleteProgram(id: string) {

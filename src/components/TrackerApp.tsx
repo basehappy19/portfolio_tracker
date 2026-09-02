@@ -870,13 +870,15 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
           onSave={async (data) => {
             const loading = toast.loading('กำลังบันทึกข้อมูล...')
             if (editingProgram) {
-              await updateProgram(editingProgram.id, data)
+              const updatedProgram = await updateProgram(editingProgram.id, data)
               setPrograms(programs.map(p => {
-                let updated = p.id === editingProgram.id ? { ...p, ...data } : p;
-                if (data.university && updated.university === data.university && data.logoUrl !== undefined) {
-                  updated = { ...updated, logoUrl: data.logoUrl === '' ? null : data.logoUrl };
+                if (p.id === editingProgram.id) {
+                  return { ...p, ...updatedProgram }
                 }
-                return updated;
+                if (data.university && p.university === data.university && updatedProgram.logoUrl !== undefined) {
+                  return { ...p, logoUrl: updatedProgram.logoUrl }
+                }
+                return p
               }))
               toast.success('แก้ไขข้อมูลเรียบร้อย', { id: loading })
             } else {
