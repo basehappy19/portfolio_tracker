@@ -100,7 +100,11 @@ export function computeUrgency(p: any) {
 export function checkStatusDisabled(targetStatus: string, currentStatus: string, programDates: any): boolean {
   const today = new Date(todayISO() + 'T00:00:00');
   
-  const parseD = (iso: string) => isFullDate(iso) ? new Date(iso + 'T00:00:00') : null;
+  const parseD = (val: any) => {
+    if (val instanceof Date) return val;
+    if (isFullDate(val)) return new Date(val + 'T00:00:00');
+    return null;
+  };
   const openD = parseD(programDates.openDate);
   const closeD = parseD(programDates.closeDate);
   const intEligibleD = parseD(programDates.interviewEligibleDate);

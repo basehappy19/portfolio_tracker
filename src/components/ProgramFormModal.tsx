@@ -5,6 +5,7 @@ import { STATUS_ORDER } from '@/lib/constants'
 import ThaiDatePicker from './ThaiDatePicker'
 import toast from 'react-hot-toast'
 import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search } from 'lucide-react'
+import { checkStatusDisabled } from '@/lib/utils'
 
 import CreatableSelect from 'react-select/creatable'
 
