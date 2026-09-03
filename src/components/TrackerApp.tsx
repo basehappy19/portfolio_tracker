@@ -1152,7 +1152,7 @@ function TimelineView({ programs }: { programs: any[] }) {
                       )}
 
                       {ev.label === 'ปิดรับสมัคร' && (p.tcasFolio || p.submissionSystem) && (
-                        <div style={{ marginTop: 6, fontSize: 11.5, color: '#6366f1', fontWeight: 500 }}><Paperclip size={14} /> ต้องใช้ {p.submissionSystem || (p.tcasFolio ? 'TCASFolio' : '')}</div>
+                        <div style={{ marginTop: 6, fontSize: 11.5, color: '#6366f1', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Paperclip size={14} /> ต้องใช้ {p.submissionSystem || (p.tcasFolio ? 'TCASFolio' : '')}</div>
                       )}
 
                       {p.note && ev.label === 'เปิดรับสมัคร' && (

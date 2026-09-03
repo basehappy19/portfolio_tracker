@@ -302,10 +302,26 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
                   </select>
                 </div>
               </div>
-              <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', marginTop: 4, padding: '12px', background: 'var(--surface-2)', borderRadius: 8}}>
-                <input type="checkbox" checked={formData.tcasFolio} onChange={e => updateFields({tcasFolio: e.target.checked})} style={{accentColor:'var(--text)', width:16, height:16}} />
-                ใช้ TCASFolio (ต้องอัปโหลดผลงานผ่านระบบ TCAS)
-              </label>
+              <div style={{ zIndex: 101, marginTop: 4 }}>
+                <label style={lbl}>ระบบที่ใช้อัปโหลด Portfolio</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', padding: '10px 12px', background: (!formData.tcasFolio && !formData.submissionSystem) ? 'var(--surface-3)' : 'var(--surface-2)', borderRadius: 8, border: (!formData.tcasFolio && !formData.submissionSystem) ? '1px solid var(--text)' : '1px solid transparent'}}>
+                    <input type="radio" name="portType" checked={!formData.tcasFolio && !formData.submissionSystem} onChange={() => updateFields({tcasFolio: false, submissionSystem: ''})} style={{accentColor:'var(--text)', width:16, height:16}} />
+                    ส่ง Portfolio ปกติ
+                  </label>
+                  <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', padding: '10px 12px', background: formData.tcasFolio ? 'var(--surface-3)' : 'var(--surface-2)', borderRadius: 8, border: formData.tcasFolio ? '1px solid var(--text)' : '1px solid transparent'}}>
+                    <input type="radio" name="portType" checked={formData.tcasFolio} onChange={() => updateFields({tcasFolio: true, submissionSystem: ''})} style={{accentColor:'var(--text)', width:16, height:16}} />
+                    ระบบ TCASFolio (ส่วนกลาง)
+                  </label>
+                  <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', padding: '10px 12px', background: (!formData.tcasFolio && !!formData.submissionSystem) ? 'var(--surface-3)' : 'var(--surface-2)', borderRadius: 8, border: (!formData.tcasFolio && !!formData.submissionSystem) ? '1px solid var(--text)' : '1px solid transparent'}}>
+                    <input type="radio" name="portType" checked={!formData.tcasFolio && !!formData.submissionSystem} onChange={() => updateFields({tcasFolio: false, submissionSystem: 'ระบุชื่อระบบ'})} style={{accentColor:'var(--text)', width:16, height:16}} />
+                    ระบบเฉพาะของมหาวิทยาลัย
+                  </label>
+                  {(!formData.tcasFolio && !!formData.submissionSystem) && (
+                    <input value={formData.submissionSystem} onChange={(e: any) => updateFields({submissionSystem: e.target.value})} style={{...inp, marginTop: -4}} placeholder="โปรดระบุชื่อระบบ หรือ URL" autoFocus />
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
