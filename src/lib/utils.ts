@@ -45,24 +45,6 @@ export function countdownChip(diffDays: number, pastLabel: string, dueTodayLabel
 export function computeUrgency(p: any) {
   const meta = STATUS_META[p.status] || STATUS_META['รอประกาศเกณฑ์']
 
-  if (p.status === 'ติดสัมภาษณ์' && isFullDate(p.interviewDate)) {
-    const diffI = daysUntil(p.interviewDate)
-    if (diffI < 0) return { mode: 'interview', tone: 'neutral', label: 'ผ่านวันสัมภาษณ์แล้ว', sortRank: 3.5, diffDays: diffI }
-    const c = countdownChip(diffI, '', 'สัมภาษณ์วันนี้') as any
-    c.mode = 'interview'
-    c.dateLabel = 'วันสัมภาษณ์'
-    return c
-  }
-
-  if (p.status === 'ยื่นสมัครแล้ว' && isFullDate(p.resultDate)) {
-    const diffR = daysUntil(p.resultDate)
-    if (diffR < 0) return { mode: 'result', tone: 'neutral', label: 'ถึงกำหนดประกาศผลแล้ว', sortRank: 3.5, diffDays: diffR }
-    const cr = countdownChip(diffR, '', 'ประกาศผลวันนี้') as any
-    cr.mode = 'result'
-    cr.dateLabel = 'รอประกาศผล'
-    return cr
-  }
-
   if (p.status === 'รอยืนยันสิทธิ์') {
     return { mode: 'actionNeeded', tone: 'warn', label: 'รอยืนยันสิทธิ์', sortRank: 0.5 }
   }
@@ -84,8 +66,27 @@ export function computeUrgency(p: any) {
   }
 
   if (diffDays < 0) {
+    // If closed, cascade to the next upcoming event
+    const events = [
+      { date: p.interviewEligibleDate, name: 'ประกาศมีสิทธิ์สัมภาษณ์', type: 'interviewEligible' },
+      { date: p.interviewDate, name: 'วันสัมภาษณ์', type: 'interview' },
+      { date: p.resultDate, name: 'วันประกาศผล', type: 'result' },
+      { date: p.confirmationDate, name: 'หมดเขตยืนยันสิทธิ์', type: 'confirmation' }
+    ]
+    for (const evt of events) {
+      if (isFullDate(evt.date)) {
+        const diff = daysUntil(evt.date)
+        if (diff >= 0) {
+          const c = countdownChip(diff, '', `ถึง${evt.name}วันนี้`) as any
+          c.mode = evt.type
+          c.dateLabel = `รอ${evt.name}`
+          return c
+        }
+      }
+    }
     return { mode: 'closed', tone: 'neutral', label: 'ปิดรับสมัครแล้ว', diffDays, sortRank: 3.5 }
   }
+  
   if (notYetOpen) {
     return { mode: 'notOpen', tone: 'neutral', label: 'ยังไม่เปิดรับ', diffDays, sortRank: 3 }
   }
@@ -94,3 +95,4 @@ export function computeUrgency(p: any) {
   chip.mode = diffDays <= 7 ? 'urgent' : (diffDays <= 21 ? 'soon' : 'plenty')
   return chip
 }
+

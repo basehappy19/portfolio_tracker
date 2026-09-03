@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { STATUS_META, STATUS_ORDER, INTERVIEW_FORMAT_LABEL } from '@/lib/constants'
 import { computeUrgency, formatDate, isFullDate, todayISO } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search } from 'lucide-react'
 import { createProgram, updateProgram, deleteProgram, toggleDocument, setPriority, setPriorities, updateStatus, setFeePaid } from '@/app/actions'
 import ProgramFormModal from './ProgramFormModal'
 
@@ -660,7 +661,7 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                 <div className="filter-chips" style={{ marginBottom: 0 }}>
                   <button className="chip" aria-pressed={extraFilters.tcasFolio} onClick={() => handleToggleExtraFilter('tcasFolio')}>TCASFolio</button>
                   <button className="chip" aria-pressed={extraFilters.hasInterview} onClick={() => handleToggleExtraFilter('hasInterview')}>มีนัดสัมภาษณ์แล้ว</button>
-                  <button className="chip" aria-pressed={extraFilters.starred} onClick={() => handleToggleExtraFilter('starred')}>★ ปักดาว</button>
+                  <button className="chip" aria-pressed={extraFilters.starred} onClick={() => handleToggleExtraFilter('starred')}><Star size={14} fill="currentColor" /> ปักดาว</button>
                 </div>
               </div>
             </div>
@@ -705,14 +706,14 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                               onClick={() => handleToggleStar(p.id)}>
                               {p.priority > 0 ? `★ ${p.priority}` : '★'}
                             </button>
-                            <button className="btn btn-ghost btn-icon" onClick={() => handleOpenForm(p)}>✎</button>
-                            <button className="btn btn-danger-ghost btn-icon" onClick={() => handleDelete(p.id)}>🗑</button>
+                            <button className="btn btn-ghost btn-icon" onClick={() => handleOpenForm(p)}><Edit2 size={16} /></button>
+                            <button className="btn btn-danger-ghost btn-icon" onClick={() => handleDelete(p.id)}><Trash2 size={16} /></button>
                           </>
                         )}
                       </div>
                     </div>
                     <div className="badge-row">
-                      {p.priority > 0 && !readOnly && <span className="badge" data-tone="warn">★ อันดับที่ชอบ {p.priority}</span>}
+                      {p.priority > 0 && !readOnly && <span className="badge" data-tone="warn"><Star size={14} fill="currentColor" /> อันดับที่ชอบ {p.priority}</span>}
                       {p.round && <span className="badge">{p.round}</span>}
                       {readOnly ? null : (
                         <select 
@@ -722,17 +723,29 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                           onChange={(e) => handleQuickStatus(p.id, e.target.value)}
                           style={{ cursor: 'pointer', outline: 'none', appearance: 'none', paddingRight: 24, backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke="gray" stroke-width="3" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', fontFamily: 'inherit' }}
                         >
-                          {STATUS_ORDER.map(s => <option key={s} value={s} style={{ color: 'var(--text)', background: 'var(--bg)' }}>{s}</option>)}
+                          {STATUS_ORDER.map(s => {
+                            let disabled = false;
+                            if (s === 'ยื่นสมัครแล้ว' || s === 'ติดสัมภาษณ์' || s === 'รอยืนยันสิทธิ์' || s === 'ยืนยันสิทธิ์แล้ว') {
+                              if (isFullDate(p.openDate) && new Date(todayISO() + 'T00:00:00') < new Date(p.openDate + 'T00:00:00')) {
+                                disabled = true;
+                              }
+                            }
+                            if (p.status === 'ยื่นสมัครแล้ว' && (s === 'ยังไม่เปิดรับสมัคร' || s === 'รอยื่นสมัคร')) disabled = true;
+                            if (p.status === 'ติดสัมภาษณ์' && (s === 'ยังไม่เปิดรับสมัคร' || s === 'รอยื่นสมัคร' || s === 'ยื่นสมัครแล้ว')) disabled = true;
+
+                            return <option key={s} value={s} disabled={disabled} style={{ color: disabled ? 'var(--text-faint)' : 'var(--text)', background: 'var(--bg)' }}>{s}</option>
+                          })}
                         </select>
                       )}
                       {p.tcasFolio && <span className="badge" data-tone="accent">ใช้ TCASFolio</span>}
+                      {p.submissionSystem && <span className="badge" data-tone="accent">ระบบ: {p.submissionSystem}</span>}
                       
                       {p.applicationFee != null && p.applicationFee > 0 && !readOnly && (
                         p.feePaid ? (
-                          <span className="badge" data-tone="success">✅ จ่ายค่าสมัครแล้ว</span>
+                          <span className="badge" data-tone="success"><Check size={14} /> จ่ายค่าสมัครแล้ว</span>
                         ) : (
                           <>
-                            <span className="badge" data-tone="danger">❌ ยังไม่จ่ายค่าสมัคร ({p.applicationFee} ฿)</span>
+                            <span className="badge" data-tone="danger"><X size={14} /> ยังไม่จ่ายค่าสมัคร ({p.applicationFee} ฿)</span>
                             <button className="status-quick-btn" data-tone="success" onClick={() => handleToggleFeePaid(p.id, true)}>จ่ายแล้ว</button>
                           </>
                         )
@@ -765,8 +778,19 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                       <details className="more" style={{ marginTop: 12 }}>
                         <summary><svg className="chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m9 6 6 6-6 6"/></svg> รายละเอียดเพิ่มเติม</summary>
                         
+                        
+                        {p.requirements && p.requirements.length > 0 && (
+                          <div className="detail-section" style={{marginTop: 12}}>
+                            <h4 style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>เกณฑ์ขั้นต่ำ</h4>
+                            <div className="doc-list" style={{ fontSize: 13.5 }}>
+                              {p.requirements.map((req: any, i: number) => (
+                                req.label ? <div key={i} className="doc-item"><span><b>{req.label}:</b> {req.value || '-'}</span></div> : null
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <div className="detail-section" style={{ marginTop: 8 }}>
-                          <h4 style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>เกณฑ์การคัดเลือก</h4>
+                          <h4 style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>สัดส่วนคะแนน</h4>
                           <CriteriaBars criteria={p.criteria || ''} />
                         </div>
 
@@ -803,8 +827,8 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
 
                         <div className="detail-section" style={{marginTop: 12}}>
                           <div style={{display:'flex', gap: 8, flexWrap: 'wrap', marginBottom: p.note ? 4 : 0}}>
-                            <a href={p.admissionLink || getAdmissionUrl(p.university)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'#10b981', color:'#fff', fontWeight: 500}}>🏛️ ระบบ Admission</a>
-                            {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'var(--text)', color:'#fff', fontWeight: 500}}>🔗 ดูประกาศฉบับเต็ม</a>}
+                            <a href={p.admissionLink || getAdmissionUrl(p.university)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'#10b981', color:'#fff', fontWeight: 500}}><Building size={14} /> ระบบ Admission</a>
+                            {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'var(--text)', color:'#fff', fontWeight: 500}}><ExternalLink size={14} /> ดูประกาศฉบับเต็ม</a>}
                           </div>
                           {p.note && <div style={{marginTop: 8, fontSize: 13.5, color: 'var(--text-muted)'}}><b>บันทึก:</b> {p.note}</div>}
                         </div>
@@ -957,7 +981,8 @@ function TimelineView({ programs }: { programs: any[] }) {
       })
     }
     addEvent(p.openDate,          'เปิดรับสมัคร')
-    addEvent(p.closeDate,         'ปิดรับสมัคร')
+    addEvent(p.closeDate, 'ปิดรับสมัคร')
+    addEvent(p.interviewEligibleDate, 'ประกาศมีสิทธิ์สัมภาษณ์')
     addEvent(p.resultDate,        'ประกาศผล')
     addEvent(p.interviewDate,     'สัมภาษณ์')
     addEvent(p.confirmationDate,  'หมดเขตยืนยันสิทธิ์')
@@ -1089,13 +1114,13 @@ function TimelineView({ programs }: { programs: any[] }) {
 
                       {ev.label === 'สัมภาษณ์' && (p.interviewFormat || p.interviewPlace) && (
                         <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                          {p.interviewFormat && <span>📍 {p.interviewFormat === 'onsite' ? 'Onsite' : 'Online'}</span>}
-                          {p.interviewPlace  && <span>🏛 {p.interviewPlace}</span>}
+                          {p.interviewFormat && <span><MapPin size={14} /> {p.interviewFormat === 'onsite' ? 'Onsite' : 'Online'}</span>}
+                          {p.interviewPlace  && <span><Building size={14} /> {p.interviewPlace}</span>}
                         </div>
                       )}
 
-                      {ev.label === 'ปิดรับสมัคร' && p.tcasFolio && (
-                        <div style={{ marginTop: 6, fontSize: 11.5, color: '#6366f1', fontWeight: 500 }}>📎 ต้องใช้ TCASFolio</div>
+                      {ev.label === 'ปิดรับสมัคร' && (p.tcasFolio || p.submissionSystem) && (
+                        <div style={{ marginTop: 6, fontSize: 11.5, color: '#6366f1', fontWeight: 500 }}><Paperclip size={14} /> ต้องใช้ {p.submissionSystem || (p.tcasFolio ? 'TCASFolio' : '')}</div>
                       )}
 
                       {p.note && ev.label === 'เปิดรับสมัคร' && (
@@ -1114,7 +1139,7 @@ function TimelineView({ programs }: { programs: any[] }) {
       {undated.length > 0 && (
         <details style={{ marginTop: 24 }}>
           <summary style={{ fontSize: 13, color: 'var(--text-faint)', cursor: 'pointer', padding: '8px 0' }}>
-            ⚠ รายการที่ยังไม่ระบุกำหนดการ ({undated.length} รายการ)
+            <AlertTriangle size={14} /> รายการที่ยังไม่ระบุกำหนดการ ({undated.length} รายการ)
           </summary>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
             {undated.map(p => (
@@ -1173,8 +1198,14 @@ function CompareView({ programs }: { programs: any[] }) {
       ? <span>{p.applicationFee.toLocaleString('th-TH')} บาท <span style={{ fontSize: 11, color: p.feePaid ? 'var(--success)' : 'var(--text-faint)' }}>({p.feePaid ? 'จ่ายแล้ว' : 'ยังไม่จ่าย'})</span></span>
       : '—'
     },
-    { label: 'TCASFolio', render: p => p.tcasFolio ? '✅ ใช้ TCASFolio' : '—' },
-    { label: 'เกณฑ์คัดเลือก', render: p => <CriteriaBars criteria={p.criteria || ''} /> },
+    { label: 'TCASFolio', render: p => p.tcasFolio ? '<Check size={14} /> ใช้ TCASFolio' : '—' },
+    { label: 'เกณฑ์ขั้นต่ำ', render: (p: any) => p.requirements && p.requirements.length 
+      ? <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12.5 }}>
+          {p.requirements.map((r: any, i: number) => r.label ? <li key={i}><b>{r.label}:</b> {r.value || '-'}</li> : null)}
+        </ul>
+      : '—'
+    },
+    { label: 'สัดส่วนคะแนน', render: p => <CriteriaBars criteria={p.criteria || ''} /> },
     { label: 'เอกสาร', render: p => p.documents?.length
       ? <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12.5 }}>
           {p.documents.map((d: any) => <li key={d.id} style={{ textDecoration: d.done ? 'line-through' : 'none', color: d.done ? 'var(--text-faint)' : 'inherit' }}>{d.text}</li>)}

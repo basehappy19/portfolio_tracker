@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { STATUS_ORDER } from '@/lib/constants'
 import ThaiDatePicker from './ThaiDatePicker'
 import toast from 'react-hot-toast'
+import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search } from 'lucide-react'
 
 import CreatableSelect from 'react-select/creatable'
 
@@ -73,8 +74,8 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState<any>({
     university: '', faculty: '', major: '', curriculum: '', round: '', status: 'รอประกาศเกณฑ์',
-    openDate: null, closeDate: null, resultDate: null, interviewDate: null, confirmationDate: null,
-    interviewFormat: '', interviewPlace: '', criteria: '', criteriaItems: [], link: '', admissionLink: '', logoUrl: '', note: '', tcasFolio: false,
+    openDate: null, closeDate: null, interviewEligibleDate: null, resultDate: null, interviewDate: null, confirmationDate: null,
+    interviewFormat: '', interviewPlace: '', criteria: '', criteriaItems: [], link: '', admissionLink: '', logoUrl: '', note: '', tcasFolio: false, submissionSystem: '', requirements: [{label: 'GPAX ขั้นต่ำ', value: ''}, {label: 'GPA ขั้นต่ำ', value: ''}],
     applicationFee: '', feePaid: false, documents: []
   })
 
@@ -122,6 +123,7 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
         status: editingProgram.status || 'รอประกาศเกณฑ์',
         openDate: parseDateStr(editingProgram.openDate),
         closeDate: parseDateStr(editingProgram.closeDate),
+        interviewEligibleDate: parseDateStr(editingProgram.interviewEligibleDate),
         resultDate: parseDateStr(editingProgram.resultDate),
         interviewDate: parseDateStr(editingProgram.interviewDate),
         confirmationDate: parseDateStr(editingProgram.confirmationDate),
@@ -134,6 +136,8 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
         logoUrl: editingProgram.logoUrl || '',
         note: editingProgram.note || '',
         tcasFolio: !!editingProgram.tcasFolio,
+        submissionSystem: editingProgram.submissionSystem || '',
+        requirements: editingProgram.requirements ? (typeof editingProgram.requirements === 'string' ? JSON.parse(editingProgram.requirements) : editingProgram.requirements) : [{label: 'GPAX ขั้นต่ำ', value: ''}, {label: 'GPA ขั้นต่ำ', value: ''}],
         applicationFee: editingProgram.applicationFee?.toString() || '',
         feePaid: !!editingProgram.feePaid,
         documents: editingProgram.documents ? [...editingProgram.documents] : []
@@ -158,13 +162,15 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
     }
     
     // criteriaItems เป็น UI-only state — ไม่ส่งไป server
-    const { criteriaItems, ...formDataWithoutCriteriaItems } = formData
+    const { criteriaItems, requirements, ...formDataWithoutCriteriaItems } = formData
 
     const finalData = {
       ...formDataWithoutCriteriaItems,
       openDate: formatDateObj(formData.openDate),
       closeDate: formatDateObj(formData.closeDate),
+      interviewEligibleDate: formatDateObj(formData.interviewEligibleDate),
       resultDate: formatDateObj(formData.resultDate),
+      requirements: requirements.filter((r: any) => r.label.trim() !== '' || r.value.trim() !== ''),
       interviewDate: formatDateObj(formData.interviewDate),
       confirmationDate: formatDateObj(formData.confirmationDate),
       criteria: stringifyCriteriaItems(criteriaItems),
@@ -299,9 +305,10 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
                 <div><label style={lbl}>เปิดรับสมัคร</label><ThaiDatePicker selected={formData.openDate} onChange={d => updateFields({openDate: d})} style={inp} placeholderText="เลือกวัน" /></div>
                 <div><label style={lbl}>ปิดรับสมัคร</label><ThaiDatePicker selected={formData.closeDate} onChange={d => updateFields({closeDate: d})} style={inp} placeholderText="เลือกวัน" /></div>
-                <div><label style={{...lbl, color:'#6366f1'}}>📋 ประกาศผล</label><ThaiDatePicker selected={formData.resultDate} onChange={d => updateFields({resultDate: d})} style={{...inp, borderColor:'#6366f133'}} placeholderText="เลือกวัน" /></div>
-                <div><label style={{...lbl, color:'#f59e0b'}}>🗓 วันสัมภาษณ์</label><ThaiDatePicker selected={formData.interviewDate} onChange={d => updateFields({interviewDate: d})} style={{...inp, borderColor:'#f59e0b33'}} placeholderText="เลือกวัน" /></div>
-                <div><label style={{...lbl, color:'#10b981'}}>✅ หมดเขตยืนยันสิทธิ์</label><ThaiDatePicker selected={formData.confirmationDate} onChange={d => updateFields({confirmationDate: d})} style={{...inp, borderColor:'#10b98133'}} placeholderText="เลือกวัน" /></div>
+                <div><label style={lbl}>ประกาศมีสิทธิ์สัมภาษณ์</label><ThaiDatePicker selected={formData.interviewEligibleDate} onChange={(d: any) => updateFields({interviewEligibleDate: d})} style={inp} placeholderText="เลือกวัน" /></div>
+                <div><label style={{...lbl, color:'#6366f1'}}><Calendar size={12} style={{display:'inline', marginBottom:-2}} /> ประกาศผล</label><ThaiDatePicker selected={formData.resultDate} onChange={d => updateFields({resultDate: d})} style={{...inp, borderColor:'#6366f133'}} placeholderText="เลือกวัน" /></div>
+                <div><label style={{...lbl, color:'#f59e0b'}}><Calendar size={12} style={{display:'inline', marginBottom:-2}} /> วันสัมภาษณ์</label><ThaiDatePicker selected={formData.interviewDate} onChange={d => updateFields({interviewDate: d})} style={{...inp, borderColor:'#f59e0b33'}} placeholderText="เลือกวัน" /></div>
+                <div><label style={{...lbl, color:'#10b981'}}><Check size={12} style={{display:'inline', marginBottom:-2}} /> หมดเขตยืนยันสิทธิ์</label><ThaiDatePicker selected={formData.confirmationDate} onChange={d => updateFields({confirmationDate: d})} style={{...inp, borderColor:'#10b98133'}} placeholderText="เลือกวัน" /></div>
               </div>
 
               <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
@@ -323,7 +330,46 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
           {step === 3 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeIn 0.3s ease' }}>
               <div>
-                <label style={lbl}>เกณฑ์การคัดเลือก</label>
+                <label style={lbl}>เกณฑ์ขั้นต่ำ (Requirements)</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                  {formData.requirements.map((req: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', gap: 8 }}>
+                      <input 
+                        value={req.label} 
+                        onChange={e => {
+                          const newReqs = [...formData.requirements]
+                          newReqs[i] = { ...newReqs[i], label: e.target.value }
+                          updateFields({ requirements: newReqs })
+                        }} 
+                        style={{ ...inp, flex: 1, padding: '6px 10px' }} 
+                        placeholder="เช่น GPAX ขั้นต่ำ, หน่วยกิต" 
+                      />
+                      <input 
+                        value={req.value} 
+                        onChange={e => {
+                          const newReqs = [...formData.requirements]
+                          newReqs[i] = { ...newReqs[i], value: e.target.value }
+                          updateFields({ requirements: newReqs })
+                        }} 
+                        style={{ ...inp, flex: 1, padding: '6px 10px' }} 
+                        placeholder="รายละเอียด" 
+                      />
+                      <button type="button" onClick={() => {
+                        const newReqs = formData.requirements.filter((_: any, idx: number) => idx !== i)
+                        updateFields({ requirements: newReqs })
+                      }} style={{ padding: '0 12px', background: 'var(--surface-3)', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'var(--danger)', fontSize: 16 }}>
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={() => {
+                  updateFields({ requirements: [...formData.requirements, { label: '', value: '' }] })
+                }} style={{ padding: '8px 12px', fontSize: 13, background: 'var(--surface-3)', color: 'var(--text)', border: '1px dashed var(--border)', borderRadius: 8, cursor: 'pointer', fontWeight: 600, width: '100%', textAlign: 'center', marginBottom: 16 }}>
+                  + เพิ่มเกณฑ์ขั้นต่ำ
+                </button>
+              </div>
+              <div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
                   {formData.criteriaItems.map((item: any, i: number) => (
                     <div key={item.id || i} style={{ display: 'flex', gap: 8 }}>
