@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search } from 'lucide-react'
 import { createProgram, updateProgram, deleteProgram, toggleDocument, setPriority, setPriorities, updateStatus, setFeePaid } from '@/app/actions'
 import ProgramFormModal from './ProgramFormModal'
+import CalendarView from './CalendarView'
 
 function parseCriteria(text: string): { label: string; pct: number }[] {
   if (!text) return []
