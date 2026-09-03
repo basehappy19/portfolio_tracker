@@ -728,10 +728,12 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
               return (
                 <article key={p.id} className="card" style={{ borderTop: `3px solid ${getUniColor(p.university)}` }}>
                   <div className="card-urgency" data-tone={u.tone}>
-                    {u.sortKey != null ? (
-                      <><div className="u-num num">{u.diffDays === 0 ? 'ถึง' : u.diffDays}</div><div className="u-label">{u.dateLabel || 'วันที่เหลือ'}</div></>
+                    {u.sortKey != null && u.diffDays > 0 ? (
+                      <><div className="u-num num">{u.diffDays}</div><div className="u-label">{u.dateLabel || 'วันที่เหลือ'}</div></>
                     ) : (
-                      <div className="u-label" style={{ fontSize: 12.5 }}>{u.label}</div>
+                      <div className="u-label" style={{ fontSize: u.diffDays === 0 ? 13 : 12.5, fontWeight: u.diffDays === 0 ? 700 : 'normal', textAlign: 'center', padding: '0 4px', lineHeight: 1.4 }}>
+                        {u.label}
+                      </div>
                     )}
                   </div>
                   <div className="card-body">

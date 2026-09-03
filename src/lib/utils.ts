@@ -68,16 +68,16 @@ export function computeUrgency(p: any) {
   if (diffDays < 0) {
     // If closed, cascade to the next upcoming event
     const events = [
-      { date: p.interviewEligibleDate, name: 'ประกาศมีสิทธิ์สัมภาษณ์', type: 'interviewEligible' },
-      { date: p.interviewDate, name: 'วันสัมภาษณ์', type: 'interview' },
-      { date: p.resultDate, name: 'วันประกาศผล', type: 'result' },
-      { date: p.confirmationDate, name: 'หมดเขตยืนยันสิทธิ์', type: 'confirmation' }
+      { date: p.interviewEligibleDate, name: 'ประกาศมีสิทธิ์สัมภาษณ์', type: 'interviewEligible', today: 'ประกาศมีสิทธิ์สัมภาษณ์วันนี้' },
+      { date: p.interviewDate, name: 'วันสัมภาษณ์', type: 'interview', today: 'สัมภาษณ์วันนี้' },
+      { date: p.resultDate, name: 'วันประกาศผล', type: 'result', today: 'ประกาศผลวันนี้' },
+      { date: p.confirmationDate, name: 'หมดเขตยืนยันสิทธิ์', type: 'confirmation', today: 'หมดเขตยืนยันสิทธิ์วันนี้' }
     ]
     for (const evt of events) {
       if (isFullDate(evt.date)) {
         const diff = daysUntil(evt.date)
         if (diff >= 0) {
-          const c = countdownChip(diff, '', `ถึง${evt.name}วันนี้`) as any
+          const c = countdownChip(diff, '', evt.today) as any
           c.mode = evt.type
           c.dateLabel = `รอ${evt.name}`
           return c
