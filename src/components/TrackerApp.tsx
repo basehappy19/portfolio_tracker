@@ -492,11 +492,25 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
 
   
   const interviewAlerts = useMemo(() => {
-    const alerts = new Map<string, 'conflict' | 'close'>();
+    const alerts = new Map<string, { type: 'conflict' | 'close', msg: string }>();
     
     // Collect all programs that have an upcoming interview date
     const interviewProgs = programs.filter(p => isFullDate(p.interviewDate) && daysUntil(p.interviewDate) >= 0);
     
+    const setAlert = (targetId: string, type: 'conflict' | 'close', otherP: any) => {
+      const current = alerts.get(targetId);
+      const msgPart = `${otherP.university} (${formatDate(otherP.interviewDate)})`;
+      
+      if (!current || (current.type === 'close' && type === 'conflict')) {
+        alerts.set(targetId, { type, msg: msgPart });
+      } else if (current.type === type) {
+        // Append to existing
+        if (!current.msg.includes(otherP.university)) {
+          alerts.set(targetId, { type, msg: current.msg + ', ' + msgPart });
+        }
+      }
+    };
+
     for (let i = 0; i < interviewProgs.length; i++) {
       for (let j = i + 1; j < interviewProgs.length; j++) {
         const p1 = interviewProgs[i];
@@ -508,11 +522,11 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
         const diffDays = Math.abs((d1 - d2) / 86400000);
         
         if (diffDays === 0) {
-          alerts.set(p1.id, 'conflict');
-          alerts.set(p2.id, 'conflict');
+          setAlert(p1.id, 'conflict', p2);
+          setAlert(p2.id, 'conflict', p1);
         } else if (diffDays <= 2) {
-          if (alerts.get(p1.id) !== 'conflict') alerts.set(p1.id, 'close');
-          if (alerts.get(p2.id) !== 'conflict') alerts.set(p2.id, 'close');
+          setAlert(p1.id, 'close', p2);
+          setAlert(p2.id, 'close', p1);
         }
       }
     }
@@ -743,8 +757,8 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                     </div>
                     
                     <div className="badge-row">
-                      {interviewAlerts.get(p.id) === 'conflict' && <span className="badge" data-tone="danger"><AlertTriangle size={14} /> วันสัมภาษณ์ชนกัน!</span>}
-                      {interviewAlerts.get(p.id) === 'close' && <span className="badge" data-tone="warn"><AlertTriangle size={14} /> วันสัมภาษณ์ใกล้กันมาก</span>}
+                      {interviewAlerts.get(p.id)?.type === 'conflict' && <span className="badge" data-tone="danger" title={'ชนกับ: ' + interviewAlerts.get(p.id)?.msg}><AlertTriangle size={14} /> ชนกัน! ({interviewAlerts.get(p.id)?.msg})</span>}
+                      {interviewAlerts.get(p.id)?.type === 'close' && <span className="badge" data-tone="warn" title={'ใกล้กับ: ' + interviewAlerts.get(p.id)?.msg}><AlertTriangle size={14} /> ใกล้กัน ({interviewAlerts.get(p.id)?.msg})</span>}
                       {p.priority > 0 && !readOnly && <span className="badge" data-tone="warn"><Star size={14} fill="currentColor" /> อันดับที่ชอบ {p.priority}</span>}
                       {p.round && <span className="badge">{p.round}</span>}
                       {readOnly ? null : (
