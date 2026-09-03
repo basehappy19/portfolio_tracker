@@ -69,7 +69,7 @@ export default function CalendarView({ programs }: CalendarViewProps) {
   const normalize = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
   return (
-    <div style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 600 }}>
+    <div style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', minHeight: '82vh' }}>
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => setCurrentDate(new Date())} style={{ padding: '6px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
@@ -85,13 +85,13 @@ export default function CalendarView({ programs }: CalendarViewProps) {
         </div>
       </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid var(--border)', background: 'var(--surface-2)' }}>
         {['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'].map(d => (
           <div key={d} style={{ padding: '10px 0', textAlign: 'center', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>{d}</div>
         ))}
       </div>
 
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: 'minmax(100px, 1fr)' }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gridAutoRows: 'minmax(100px, 1fr)' }}>
         {days.map((dayObj, i) => {
           const dayTime = normalize(dayObj.date);
           const dayEvents = events.filter(e => {
@@ -142,7 +142,7 @@ export default function CalendarView({ programs }: CalendarViewProps) {
                     return (
                       <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 4, padding: '2px 4px' }} title={e.title}>
                         <div style={{ width: 6, height: 6, borderRadius: '50%', background: e.color, marginTop: 4, flexShrink: 0 }} />
-                        <span style={{ fontSize: 11, lineHeight: 1.2, color: 'var(--text)' }}>
+                        <span style={{ fontSize: 11, lineHeight: 1.2, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
                           {e.title}
                         </span>
                       </div>
