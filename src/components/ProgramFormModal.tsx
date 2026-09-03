@@ -76,7 +76,7 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
   const [formData, setFormData] = useState<any>({
     university: '', faculty: '', major: '', curriculum: '', round: '', status: 'รอประกาศเกณฑ์',
     openDate: null, closeDate: null, interviewEligibleDate: null, resultDate: null, interviewDate: null, confirmationDate: null,
-    interviewFormat: '', interviewPlace: '', criteria: '', criteriaItems: [], link: '', admissionLink: '', logoUrl: '', note: '', tcasFolio: false, submissionSystem: '', requirements: [{label: 'GPAX ขั้นต่ำ', value: ''}, {label: 'GPA ขั้นต่ำ', value: ''}],
+    interviewFormat: '', interviewPlace: '', criteria: '', criteriaItems: [], link: '', admissionLink: '', logoUrl: '', note: '', tcasFolio: false, submissionSystem: '', customSystem: false, requirements: [{label: 'GPAX ขั้นต่ำ', value: ''}, {label: 'GPA ขั้นต่ำ', value: ''}],
     applicationFee: '', feePaid: false, documents: []
   })
 
@@ -137,7 +137,7 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
         logoUrl: editingProgram.logoUrl || '',
         note: editingProgram.note || '',
         tcasFolio: !!editingProgram.tcasFolio,
-        submissionSystem: editingProgram.submissionSystem || '',
+        submissionSystem: editingProgram.submissionSystem || '', customSystem: !!editingProgram.submissionSystem,
         requirements: editingProgram.requirements ? (typeof editingProgram.requirements === 'string' ? JSON.parse(editingProgram.requirements) : editingProgram.requirements) : [{label: 'GPAX ขั้นต่ำ', value: ''}, {label: 'GPA ขั้นต่ำ', value: ''}],
         applicationFee: editingProgram.applicationFee?.toString() || '',
         feePaid: !!editingProgram.feePaid,
@@ -305,20 +305,20 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
               <div style={{ zIndex: 101, marginTop: 4 }}>
                 <label style={lbl}>ระบบที่ใช้อัปโหลด Portfolio</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', padding: '10px 12px', background: (!formData.tcasFolio && !formData.submissionSystem) ? 'var(--surface-3)' : 'var(--surface-2)', borderRadius: 8, border: (!formData.tcasFolio && !formData.submissionSystem) ? '1px solid var(--text)' : '1px solid transparent'}}>
-                    <input type="radio" name="portType" checked={!formData.tcasFolio && !formData.submissionSystem} onChange={() => updateFields({tcasFolio: false, submissionSystem: ''})} style={{accentColor:'var(--text)', width:16, height:16}} />
+                  <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', padding: '10px 12px', background: (!formData.tcasFolio && !formData.customSystem) ? 'var(--surface-3)' : 'var(--surface-2)', borderRadius: 8, border: (!formData.tcasFolio && !formData.customSystem) ? '1px solid var(--text)' : '1px solid transparent'}}>
+                    <input type="radio" name="portType" checked={!formData.tcasFolio && !formData.customSystem} onChange={() => updateFields({tcasFolio: false, customSystem: false, submissionSystem: ''})} style={{accentColor:'var(--text)', width:16, height:16}} />
                     ส่ง Portfolio ปกติ
                   </label>
                   <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', padding: '10px 12px', background: formData.tcasFolio ? 'var(--surface-3)' : 'var(--surface-2)', borderRadius: 8, border: formData.tcasFolio ? '1px solid var(--text)' : '1px solid transparent'}}>
-                    <input type="radio" name="portType" checked={formData.tcasFolio} onChange={() => updateFields({tcasFolio: true, submissionSystem: ''})} style={{accentColor:'var(--text)', width:16, height:16}} />
+                    <input type="radio" name="portType" checked={formData.tcasFolio} onChange={() => updateFields({tcasFolio: true, customSystem: false, submissionSystem: ''})} style={{accentColor:'var(--text)', width:16, height:16}} />
                     ระบบ TCASFolio (ส่วนกลาง)
                   </label>
-                  <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', padding: '10px 12px', background: (!formData.tcasFolio && !!formData.submissionSystem) ? 'var(--surface-3)' : 'var(--surface-2)', borderRadius: 8, border: (!formData.tcasFolio && !!formData.submissionSystem) ? '1px solid var(--text)' : '1px solid transparent'}}>
-                    <input type="radio" name="portType" checked={!formData.tcasFolio && !!formData.submissionSystem} onChange={() => updateFields({tcasFolio: false, submissionSystem: 'ระบุชื่อระบบ'})} style={{accentColor:'var(--text)', width:16, height:16}} />
+                  <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', padding: '10px 12px', background: formData.customSystem ? 'var(--surface-3)' : 'var(--surface-2)', borderRadius: 8, border: formData.customSystem ? '1px solid var(--text)' : '1px solid transparent'}}>
+                    <input type="radio" name="portType" checked={formData.customSystem} onChange={() => updateFields({tcasFolio: false, customSystem: true, submissionSystem: ''})} style={{accentColor:'var(--text)', width:16, height:16}} />
                     ระบบเฉพาะของมหาวิทยาลัย
                   </label>
-                  {(!formData.tcasFolio && !!formData.submissionSystem) && (
-                    <input value={formData.submissionSystem} onChange={(e: any) => updateFields({submissionSystem: e.target.value})} style={{...inp, marginTop: -4}} placeholder="โปรดระบุชื่อระบบ หรือ URL" autoFocus />
+                  {formData.customSystem && (
+                    <input value={formData.submissionSystem} onChange={(e: any) => updateFields({submissionSystem: e.target.value})} style={{...inp, marginTop: -4}} placeholder="ระบุชื่อของระบบ หรือ URL" autoFocus />
                   )}
                 </div>
               </div>
