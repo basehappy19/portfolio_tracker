@@ -146,6 +146,12 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
     }
   }, [editingProgram])
 
+  
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = 'auto'; }
+  }, []);
+
   const updateFields = (fields: any) => {
     setFormData((prev: any) => ({ ...prev, ...fields }))
   }
@@ -183,8 +189,8 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
   }
 
   return (
-    <div className="modal-overlay" style={{position:'fixed', top:0, left:0, right:0, bottom:0, backgroundColor:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex: 1000, padding: 16}}>
-      <div className="modal" style={{backgroundColor:'var(--surface)', borderRadius:16, width:'100%', maxWidth:560, maxHeight:'92vh', display:'flex', flexDirection:'column', position:'relative', animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'}}>
+    <div className="modal-overlay form-modal-overlay">
+      <div className="modal form-modal">
         <button onClick={onClose} style={{position:'absolute', top:16, right:16, background:'none', border:'none', fontSize:20, cursor:'pointer', color:'var(--text-faint)'}}>✕</button>
         
         <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid var(--border)' }}>
