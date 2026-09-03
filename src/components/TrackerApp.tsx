@@ -834,8 +834,8 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
 
                         <div className="detail-section" style={{marginTop: 12}}>
                           <div style={{display:'flex', gap: 8, flexWrap: 'wrap', marginBottom: p.note ? 4 : 0}}>
-                            <a href={p.admissionLink || getAdmissionUrl(p.university)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'#10b981', color:'#fff', fontWeight: 500}}><Building size={14} /> ระบบ Admission</a>
-                            {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'var(--text)', color:'#fff', fontWeight: 500}}><ExternalLink size={14} /> ดูประกาศฉบับเต็ม</a>}
+                            <a href={p.admissionLink || getAdmissionUrl(p.university)} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', alignItems:'center', gap: 6, padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'#10b981', color:'#fff', fontWeight: 500}}><Building size={14} /> ระบบ Admission</a>
+                            {p.link && <a href={p.link} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', alignItems:'center', gap: 6, padding:'4px 10px', fontSize:12, borderRadius:4, textDecoration:'none', backgroundColor:'var(--text)', color:'#fff', fontWeight: 500}}><ExternalLink size={14} /> ดูประกาศฉบับเต็ม</a>}
                           </div>
                           {p.note && <div style={{marginTop: 8, fontSize: 13.5, color: 'var(--text-muted)'}}><b>บันทึก:</b> {p.note}</div>}
                         </div>
@@ -1205,7 +1205,7 @@ function CompareView({ programs }: { programs: any[] }) {
       ? <span>{p.applicationFee.toLocaleString('th-TH')} บาท <span style={{ fontSize: 11, color: p.feePaid ? 'var(--success)' : 'var(--text-faint)' }}>({p.feePaid ? 'จ่ายแล้ว' : 'ยังไม่จ่าย'})</span></span>
       : '—'
     },
-    { label: 'TCASFolio', render: p => p.tcasFolio ? '<Check size={14} /> ใช้ TCASFolio' : '—' },
+    { label: 'TCASFolio', render: p => p.tcasFolio ? <><Check size={14} /> ใช้ TCASFolio</> : '—' },
     { label: 'เกณฑ์ขั้นต่ำ', render: (p: any) => p.requirements && p.requirements.length 
       ? <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12.5 }}>
           {p.requirements.map((r: any, i: number) => r.label ? <li key={i}><b>{r.label}:</b> {r.value || '-'}</li> : null)}
