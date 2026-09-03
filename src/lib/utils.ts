@@ -96,3 +96,54 @@ export function computeUrgency(p: any) {
   return chip
 }
 
+
+export function checkStatusDisabled(targetStatus: string, currentStatus: string, programDates: any): boolean {
+  const today = new Date(todayISO() + 'T00:00:00');
+  
+  const parseD = (iso: string) => isFullDate(iso) ? new Date(iso + 'T00:00:00') : null;
+  const openD = parseD(programDates.openDate);
+  const closeD = parseD(programDates.closeDate);
+  const intEligibleD = parseD(programDates.interviewEligibleDate);
+  const intD = parseD(programDates.interviewDate);
+  const resultD = parseD(programDates.resultDate);
+
+  const isBefore = (d: Date | null) => d && today < d;
+  const isAfterOrOn = (d: Date | null) => d && today >= d;
+
+  // Some explicit logic for each status
+  if (targetStatus === 'รอประกาศเกณฑ์' || targetStatus === 'ยังไม่เปิดรับสมัคร') {
+    if (isAfterOrOn(openD) || isAfterOrOn(closeD)) return true;
+  }
+  if (targetStatus === 'รอยื่นสมัคร') {
+    if (isBefore(openD)) return true;
+    if (isAfterOrOn(closeD)) return true;
+  }
+  if (targetStatus === 'ยื่นสมัครแล้ว') {
+    if (isBefore(openD)) return true;
+    // We allow setting to ยื่นสมัครแล้ว even after close date, in case user forgot
+  }
+  if (targetStatus === 'ติดสัมภาษณ์') {
+    // Should wait until eligible date. If not set, wait until close date
+    if (intEligibleD) {
+      if (isBefore(intEligibleD)) return true;
+    } else {
+      if (isBefore(closeD)) return true;
+    }
+  }
+  if (targetStatus === 'รอยืนยันสิทธิ์' || targetStatus === 'ยืนยันสิทธิ์แล้ว') {
+    if (resultD) {
+      if (isBefore(resultD)) return true;
+    } else {
+      if (isBefore(closeD)) return true;
+    }
+  }
+  if (targetStatus === 'ไม่ผ่านการคัดเลือก') {
+    if (isBefore(closeD)) return true;
+  }
+
+  // Prevent reverting logic from previous simple logic
+  if (currentStatus === 'ยื่นสมัครแล้ว' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร')) return true;
+  if (currentStatus === 'ติดสัมภาษณ์' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร' || targetStatus === 'ยื่นสมัครแล้ว')) return true;
+
+  return false;
+}

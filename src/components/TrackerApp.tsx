@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { STATUS_META, STATUS_ORDER, INTERVIEW_FORMAT_LABEL } from '@/lib/constants'
-import { computeUrgency, formatDate, isFullDate, todayISO, daysUntil } from '@/lib/utils'
+import { computeUrgency, formatDate, isFullDate, todayISO, daysUntil, checkStatusDisabled } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search } from 'lucide-react'
 import { createProgram, updateProgram, deleteProgram, toggleDocument, setPriority, setPriorities, updateStatus, setFeePaid } from '@/app/actions'
@@ -724,14 +724,7 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                           style={{ cursor: 'pointer', outline: 'none', appearance: 'none', paddingRight: 24, backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" stroke="gray" stroke-width="3" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', fontFamily: 'inherit' }}
                         >
                           {STATUS_ORDER.map(s => {
-                            let disabled = false;
-                            if (s === 'ยื่นสมัครแล้ว' || s === 'ติดสัมภาษณ์' || s === 'รอยืนยันสิทธิ์' || s === 'ยืนยันสิทธิ์แล้ว') {
-                              if (isFullDate(p.openDate) && new Date(todayISO() + 'T00:00:00') < new Date(p.openDate + 'T00:00:00')) {
-                                disabled = true;
-                              }
-                            }
-                            if (p.status === 'ยื่นสมัครแล้ว' && (s === 'ยังไม่เปิดรับสมัคร' || s === 'รอยื่นสมัคร')) disabled = true;
-                            if (p.status === 'ติดสัมภาษณ์' && (s === 'ยังไม่เปิดรับสมัคร' || s === 'รอยื่นสมัคร' || s === 'ยื่นสมัครแล้ว')) disabled = true;
+                            let disabled = checkStatusDisabled(s, p.status, p);
 
                             return <option key={s} value={s} disabled={disabled} style={{ color: disabled ? 'var(--text-faint)' : 'var(--text)', background: 'var(--bg)' }}>{s}</option>
                           })}

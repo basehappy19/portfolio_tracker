@@ -288,7 +288,10 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
                 <div style={{flex:1}}><label style={lbl}>รอบที่สมัคร</label><input value={formData.round} onChange={e => updateFields({round: e.target.value})} style={inp} placeholder="เช่น 1 Portfolio" /></div>
                 <div style={{flex:1}}><label style={lbl}>สถานะ</label>
                   <select value={formData.status} onChange={e => updateFields({status: e.target.value})} style={inp}>
-                    {STATUS_ORDER.map(s => <option key={s} value={s}>{s}</option>)}
+                    {STATUS_ORDER.map(s => {
+                      const disabled = checkStatusDisabled(s, formData.status, formData);
+                      return <option key={s} value={s} disabled={disabled} style={{ color: disabled ? 'var(--text-faint)' : 'var(--text)', background: 'var(--bg)' }}>{s}</option>
+                    })}
                   </select>
                 </div>
               </div>
