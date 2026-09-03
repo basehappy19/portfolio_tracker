@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { STATUS_META, STATUS_ORDER, INTERVIEW_FORMAT_LABEL } from '@/lib/constants'
-import { computeUrgency, formatDate, isFullDate, todayISO } from '@/lib/utils'
+import { computeUrgency, formatDate, isFullDate, todayISO, daysUntil } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search } from 'lucide-react'
 import { createProgram, updateProgram, deleteProgram, toggleDocument, setPriority, setPriorities, updateStatus, setFeePaid } from '@/app/actions'
@@ -752,13 +752,20 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                       )}
                     </div>
                     <div className="date-row">
-                      {!(isFullDate(p.openDate) && new Date(todayISO() + 'T00:00:00') >= new Date(p.openDate + 'T00:00:00')) && (
+                      {!(isFullDate(p.openDate) && daysUntil(p.openDate) <= 0) && (
                         <div className="date-item"><b>เปิดรับ</b><span>{formatDate(p.openDate)}</span></div>
                       )}
-                      <div className="date-item"><b>ปิดรับ</b><span>{formatDate(p.closeDate)}</span></div>
-                      <div className="date-item"><b>ประกาศผล</b><span>{formatDate(p.resultDate)}</span></div>
-                      {isFullDate(p.interviewDate) && (
+                      {!(isFullDate(p.closeDate) && daysUntil(p.closeDate) < 0) && (
+                        <div className="date-item"><b>ปิดรับ</b><span>{formatDate(p.closeDate)}</span></div>
+                      )}
+                      {isFullDate(p.interviewEligibleDate) && daysUntil(p.interviewEligibleDate) >= 0 && (
+                        <div className="date-item"><b>มีสิทธิ์สัมภาษณ์</b><span>{formatDate(p.interviewEligibleDate)}</span></div>
+                      )}
+                      {isFullDate(p.interviewDate) && daysUntil(p.interviewDate) >= 0 && (
                         <div className="date-item"><b>สัมภาษณ์</b><span>{formatDate(p.interviewDate)}</span></div>
+                      )}
+                      {isFullDate(p.resultDate) && daysUntil(p.resultDate) >= 0 && (
+                        <div className="date-item"><b>ประกาศผล</b><span>{formatDate(p.resultDate)}</span></div>
                       )}
                     </div>
 
