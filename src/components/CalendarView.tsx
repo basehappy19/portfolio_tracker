@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Settings2 } from 'lucide-react';
 import { THAI_MONTHS } from '@/lib/constants';
 import { isFullDate, formatDate } from '@/lib/utils';
 
@@ -18,9 +18,14 @@ const hashColor = (str: string) => {
 export default function CalendarView({ programs, onEdit }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [popover, setPopover] = useState<{ event: any, x: number, y: number } | null>(null);
+  const [showPeriods, setShowPeriods] = useState(false);
 
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-  const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    const d = new Date(year, month, 1).getDay();
+    return d === 0 ? 6 : d - 1; // Mon=0, Tue=1, ..., Sun=6
+  };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -61,12 +66,11 @@ export default function CalendarView({ programs, onEdit }: CalendarViewProps) {
 
       const univColor = hashColor(p.university || p.id);
 
-      if (openD && closeD) {
-        allEvents.push({ type: 'period', id: p.id + '-period', title: `เปิดรับสมัคร: ${p.university} ${p.faculty}`, start: openD, end: closeD, color: univColor, p });
-      } else if (openD) {
-        allEvents.push({ type: 'point', id: p.id + '-open', title: `เปิดรับสมัคร: ${p.university}`, date: openD, color: 'var(--success)', p });
-      } else if (closeD) {
-        allEvents.push({ type: 'point', id: p.id + '-close', title: `ปิดรับสมัคร: ${p.university}`, date: closeD, color: 'var(--danger)', p });
+      if (openD && closeD && showPeriods) {
+        allEvents.push({ type: 'period', id: p.id + '-period', title: `รับสมัคร: ${p.university}`, start: openD, end: closeD, color: univColor, p });
+      } else {
+        if (openD) allEvents.push({ type: 'point', id: p.id + '-open', title: `เปิดรับสมัคร: ${p.university}`, date: openD, color: '#10b981', p });
+        if (closeD) allEvents.push({ type: 'point', id: p.id + '-close', title: `ปิดรับสมัคร: ${p.university}`, date: closeD, color: '#ef4444', p });
       }
 
       if (intEligD) allEvents.push({ type: 'point', id: p.id + '-intElig', title: `ประกาศสิทธิ์: ${p.university}`, date: intEligD, color: '#3b82f6', p });
@@ -75,13 +79,18 @@ export default function CalendarView({ programs, onEdit }: CalendarViewProps) {
       if (confD) allEvents.push({ type: 'point', id: p.id + '-conf', title: `ยืนยันสิทธิ์: ${p.university}`, date: confD, color: '#ef4444', p });
     });
     return allEvents;
-  }, [programs]);
+  }, [programs, showPeriods]);
 
   const normalize = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
+  const handleEventClick = (e: React.MouseEvent, ev: any) => {
+    e.stopPropagation();
+    setPopover({ event: ev, x: e.clientX, y: e.clientY });
+  };
+
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', minHeight: '82vh', position: 'relative' }}>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => setCurrentDate(new Date())} style={{ padding: '6px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
             วันนี้
@@ -94,10 +103,16 @@ export default function CalendarView({ programs, onEdit }: CalendarViewProps) {
             {THAI_MONTHS[month]} {year + 543}
           </span>
         </div>
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer', background: 'var(--surface-2)', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
+            <input type="checkbox" checked={showPeriods} onChange={e => setShowPeriods(e.target.checked)} style={{ accentColor: 'var(--text)' }} />
+            แสดงแถบยาว (ช่วงรับสมัคร)
+          </label>
+        </div>
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', borderBottom: '1px solid var(--border)', background: 'var(--surface-2)' }}>
-        {['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'].map(d => (
+        {['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'].map(d => (
           <div key={d} style={{ padding: '10px 0', textAlign: 'center', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>{d}</div>
         ))}
       </div>
@@ -139,33 +154,33 @@ export default function CalendarView({ programs, onEdit }: CalendarViewProps) {
                   if (e.type === 'period') {
                     const isStart = normalize(e.start) === dayTime;
                     const isEnd = normalize(e.end) === dayTime;
-                    const isSunday = dayObj.date.getDay() === 0;
-                    const showTitle = isStart || isSunday;
+                    const isMonday = dayObj.date.getDay() === 1;
+                    const showTitle = isStart || isMonday;
                     
                     return (
                       <div key={e.id} 
-                        onClick={() => onEdit?.(e.p)}
+                        onClick={(ev) => handleEventClick(ev, e)}
                         style={{ 
                         background: e.color + '15', color: 'var(--text)', fontSize: 11, padding: '2px 6px', fontWeight: 500,
                         borderTop: '1px solid ' + e.color + '40',
                         borderBottom: '1px solid ' + e.color + '40',
-                        borderLeft: isStart || isSunday ? '4px solid ' + e.color : '1px solid transparent',
+                        borderLeft: isStart || isMonday ? '4px solid ' + e.color : '1px solid transparent',
                         borderRight: isEnd ? '4px solid ' + e.color : '1px solid transparent',
                         borderRadius: isStart ? '4px 0 0 4px' : isEnd ? '0 4px 4px 0' : '0',
                         marginLeft: isStart ? 2 : -1,
                         marginRight: isEnd ? 2 : -1,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         cursor: 'pointer'
-                      }} title={e.title + ' (คลิกเพื่อดูรายละเอียด)'}>
+                      }} title="คลิกเพื่อดูรายละเอียด">
                         {showTitle ? e.title : '\u00A0'}
                       </div>
                     );
                   } else {
                     return (
                       <div key={e.id} 
-                        onClick={() => onEdit?.(e.p)}
+                        onClick={(ev) => handleEventClick(ev, e)}
                         style={{ display: 'flex', alignItems: 'flex-start', gap: 4, padding: '2px 4px', cursor: 'pointer' }} 
-                        title={e.title + ' (คลิกเพื่อดูรายละเอียด)'}
+                        title="คลิกเพื่อดูรายละเอียด"
                       >
                         <div style={{ width: 6, height: 6, borderRadius: '50%', background: e.color, marginTop: 4, flexShrink: 0 }} />
                         <span style={{ fontSize: 11, lineHeight: 1.2, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
@@ -180,6 +195,32 @@ export default function CalendarView({ programs, onEdit }: CalendarViewProps) {
           );
         })}
       </div>
+
+      {popover && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} onClick={() => setPopover(null)}>
+          <div style={{ 
+            position: 'absolute', 
+            top: Math.min(popover.y + 10, window.innerHeight - 200), 
+            left: Math.min(popover.x + 10, window.innerWidth - 300), 
+            background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, width: 280, boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+            zIndex: 101, animation: 'fadeIn 0.15s ease'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: popover.event.color }} />
+              <h4 style={{ margin: 0, fontSize: 14, color: 'var(--text)', fontWeight: 600 }}>{popover.event.title}</h4>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{popover.event.p.university}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{popover.event.p.faculty} {popover.event.p.major}</div>
+            {popover.event.type === 'period' && (
+              <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 8 }}>
+                รับสมัคร: {formatDate(popover.event.p.openDate)} - {formatDate(popover.event.p.closeDate)}
+              </div>
+            )}
+            <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '12px 0' }} />
+            <button className="btn btn-primary" style={{ width: '100%', padding: '6px 0', fontSize: 13, background: 'var(--text)', color: 'var(--bg)' }} onClick={() => { setPopover(null); onEdit?.(popover.event.p); }}>ดูข้อมูลเต็ม / แก้ไข</button>
+          </div>
+        </div>
+      )}
 
       {selectedDay && (
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.2s ease' }}>
@@ -203,7 +244,7 @@ export default function CalendarView({ programs, onEdit }: CalendarViewProps) {
                 if (e.type === 'period') return normalize(e.start) <= dayTime && normalize(e.end) >= dayTime;
                 return false;
               }).map(e => (
-                <div key={e.id + '-modal'} onClick={() => { setSelectedDay(null); onEdit?.(e.p); }} style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: 12, background: 'var(--surface-2)', borderRadius: 8, cursor: 'pointer', borderLeft: `4px solid ${e.color}` }}>
+                <div key={e.id + '-modal'} onClick={(ev) => { setSelectedDay(null); handleEventClick(ev, e); }} style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: 12, background: 'var(--surface-2)', borderRadius: 8, cursor: 'pointer', borderLeft: `4px solid ${e.color}` }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{e.title}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{e.p.faculty} {e.p.major}</div>
                   {e.type === 'period' && (
