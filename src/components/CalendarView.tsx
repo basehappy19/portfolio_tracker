@@ -135,7 +135,7 @@ export default function CalendarView({ programs }: CalendarViewProps) {
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         opacity: 0.85
                       }} title={e.title}>
-                        {showTitle ? e.title : '\\u00A0'}
+                        {showTitle ? e.title : '\u00A0'}
                       </div>
                     );
                   } else {
