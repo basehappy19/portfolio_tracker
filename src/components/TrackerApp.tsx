@@ -939,7 +939,7 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
       {/* Basic implementations for compare & timeline can go here */}
       {!readOnly && view === 'compare' && <CompareView programs={programs} />}
       {!readOnly && view === 'timeline' && <TimelineView programs={filteredPrograms} />}
-      {!readOnly && view === 'calendar' && <CalendarView programs={filteredPrograms} />}
+      {!readOnly && view === 'calendar' && <CalendarView programs={filteredPrograms} onEdit={(p: any) => handleOpenForm(p)} />}
 
       {formOpen && (
         <ProgramFormModal
