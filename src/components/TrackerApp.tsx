@@ -1146,7 +1146,7 @@ function TimelineView({ programs }: { programs: any[] }) {
 
                       {ev.label === 'สัมภาษณ์' && (p.interviewFormat || p.interviewPlace) && (
                         <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                          {p.interviewFormat && <span><MapPin size={14} /> {p.interviewFormat === 'onsite' ? 'Onsite' : 'Online'}</span>}
+                          {p.interviewFormat && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><MapPin size={14} /> {p.interviewFormat === 'onsite' ? 'Onsite' : 'Online'}</span>}
                           {p.interviewPlace  && <span><Building size={14} /> {p.interviewPlace}</span>}
                         </div>
                       )}
