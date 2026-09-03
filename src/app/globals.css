@@ -532,7 +532,7 @@ details.more summary:hover { color: var(--accent, #6366f1); }
 
 .react-datepicker-wrapper { width: 100%; display: block; }
 .react-datepicker__input-container { width: 100%; display: block; }
-\n
+
 .form-modal-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background-color: rgba(0,0,0,0.5);
