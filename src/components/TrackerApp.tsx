@@ -663,6 +663,7 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
             <button className="view-tab" aria-pressed={view === 'list'} onClick={() => setView('list')}>รายการ</button>
             <button className="view-tab" aria-pressed={view === 'compare'} onClick={() => setView('compare')}>เปรียบเทียบ</button>
             <button className="view-tab" aria-pressed={view === 'timeline'} onClick={() => setView('timeline')}>ไทม์ไลน์</button>
+            <button className="view-tab" aria-pressed={view === 'calendar'} onClick={() => setView('calendar')}>ปฏิทิน</button>
           </div>
         </>
       )}
@@ -937,6 +938,7 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
       {/* Basic implementations for compare & timeline can go here */}
       {!readOnly && view === 'compare' && <CompareView programs={programs} />}
       {!readOnly && view === 'timeline' && <TimelineView programs={filteredPrograms} />}
+      {!readOnly && view === 'calendar' && <CalendarView programs={filteredPrograms} />}
 
       {formOpen && (
         <ProgramFormModal
