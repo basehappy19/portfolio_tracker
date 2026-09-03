@@ -46,7 +46,7 @@ export async function getSuggestions() {
 }
 
 async function resolveRelations(data: any) {
-  const { university, faculty, major, curriculum, round, ...rest } = data
+  const { university, faculty, major, curriculum, round, customSystem, ...rest } = data
   const relations: any = {}
 
   if (university) {
