@@ -490,6 +490,35 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
     if (paid) toast.success('ทำเครื่องหมายจ่ายค่าสมัครแล้ว')
   }
 
+  
+  const interviewAlerts = useMemo(() => {
+    const alerts = new Map<string, 'conflict' | 'close'>();
+    
+    // Collect all programs that have an upcoming interview date
+    const interviewProgs = programs.filter(p => isFullDate(p.interviewDate) && daysUntil(p.interviewDate) >= 0);
+    
+    for (let i = 0; i < interviewProgs.length; i++) {
+      for (let j = i + 1; j < interviewProgs.length; j++) {
+        const p1 = interviewProgs[i];
+        const p2 = interviewProgs[j];
+        
+        const d1 = new Date(p1.interviewDate + 'T00:00:00').getTime();
+        const d2 = new Date(p2.interviewDate + 'T00:00:00').getTime();
+        
+        const diffDays = Math.abs((d1 - d2) / 86400000);
+        
+        if (diffDays === 0) {
+          alerts.set(p1.id, 'conflict');
+          alerts.set(p2.id, 'conflict');
+        } else if (diffDays <= 2) {
+          if (alerts.get(p1.id) !== 'conflict') alerts.set(p1.id, 'close');
+          if (alerts.get(p2.id) !== 'conflict') alerts.set(p2.id, 'close');
+        }
+      }
+    }
+    return alerts;
+  }, [programs]);
+
   const handleExportCSV = () => {
     const headers = ['มหาวิทยาลัย', 'คณะ', 'สาขา', 'หลักสูตร', 'รอบ', 'สถานะ', 'เปิดรับสมัคร', 'ปิดรับสมัคร', 'ประกาศผล', 'วันสัมภาษณ์', 'หมดเขตยืนยันสิทธิ์', 'เกณฑ์การคัดเลือก', 'ลิงก์ประกาศ', 'ค่าสมัคร']
     const rows = filteredPrograms.map(p => [
@@ -712,7 +741,10 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
                         )}
                       </div>
                     </div>
+                    
                     <div className="badge-row">
+                      {interviewAlerts.get(p.id) === 'conflict' && <span className="badge" data-tone="danger"><AlertTriangle size={14} /> วันสัมภาษณ์ชนกัน!</span>}
+                      {interviewAlerts.get(p.id) === 'close' && <span className="badge" data-tone="warn"><AlertTriangle size={14} /> วันสัมภาษณ์ใกล้กันมาก</span>}
                       {p.priority > 0 && !readOnly && <span className="badge" data-tone="warn"><Star size={14} fill="currentColor" /> อันดับที่ชอบ {p.priority}</span>}
                       {p.round && <span className="badge">{p.round}</span>}
                       {readOnly ? null : (
