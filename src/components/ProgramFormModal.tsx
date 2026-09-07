@@ -438,8 +438,8 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
                   + เพิ่มเกณฑ์
                 </button>
               </div>
-              <div><label style={lbl}>ลิงก์ประกาศฉบับเต็ม (URL)</label><input type="url" value={formData.link} onChange={e => updateFields({link: e.target.value})} placeholder="https://..." style={inp} /></div>
-              <div><label style={lbl}>ลิงก์ระบบ Admission มหาวิทยาลัย (ถ้ามี)</label><input type="url" value={formData.admissionLink} onChange={e => updateFields({admissionLink: e.target.value})} placeholder="https://..." style={inp} /></div>
+              <div><label style={lbl}>ลิงก์ประกาศฉบับเต็ม (URL)</label><input type="text" value={formData.link} onChange={e => updateFields({link: e.target.value})} placeholder="https://..." style={inp} /></div>
+              <div><label style={lbl}>ลิงก์ระบบ Admission มหาวิทยาลัย (ถ้ามี)</label><input type="text" value={formData.admissionLink} onChange={e => updateFields({admissionLink: e.target.value})} placeholder="https://..." style={inp} /></div>
               
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, alignItems:'end', marginTop: 4}}>
                 <div><label style={lbl}>ค่าสมัคร (บาท)</label><input type="number" inputMode="decimal" min={0} value={formData.applicationFee} onChange={e => updateFields({applicationFee: e.target.value})} placeholder="เช่น 300" style={inp} /></div>

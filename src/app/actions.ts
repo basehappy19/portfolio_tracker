@@ -130,13 +130,13 @@ export async function updateProgram(id: string, data: any) {
   const { rest, relations } = await resolveRelations(programData)
   
   if (relations.universityId) {
-    if (rest.logoUrl !== undefined) { // Check if logoUrl is included in the update payload
+    if (rest.logoUrl !== undefined) {
       if (rest.logoUrl) {
         await prisma.program.updateMany({
           where: { universityId: relations.universityId },
           data: { logoUrl: rest.logoUrl }
         })
-      } else if (rest.logoUrl === '') { // Means user cleared the logo
+      } else if (rest.logoUrl === '') {
         await prisma.program.updateMany({
           where: { universityId: relations.universityId },
           data: { logoUrl: null }
@@ -165,6 +165,9 @@ export async function updateProgram(id: string, data: any) {
       round: true
     }
   })
+  
+  await cleanupOrphans()
+  
   revalidatePath('/')
   return {
     ...updated,
@@ -178,7 +181,21 @@ export async function updateProgram(id: string, data: any) {
 
 export async function deleteProgram(id: string) {
   await prisma.program.delete({ where: { id } })
+  await cleanupOrphans()
   revalidatePath('/')
+}
+
+export async function cleanupOrphansAction() {
+  await cleanupOrphans()
+  revalidatePath('/')
+}
+
+async function cleanupOrphans() {
+  await prisma.university.deleteMany({ where: { programs: { none: {} } } })
+  await prisma.faculty.deleteMany({ where: { programs: { none: {} } } })
+  await prisma.major.deleteMany({ where: { programs: { none: {} } } })
+  await prisma.curriculum.deleteMany({ where: { programs: { none: {} } } })
+  await prisma.round.deleteMany({ where: { programs: { none: {} } } })
 }
 
 export async function toggleDocument(docId: string, done: boolean) {
