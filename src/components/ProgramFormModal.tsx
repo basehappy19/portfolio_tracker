@@ -9,14 +9,10 @@ import { checkStatusDisabled } from '@/lib/utils'
 
 import CreatableSelect from 'react-select/creatable'
 
+import { getSuggestions } from '@/app/actions'
+
 interface ProgramFormModalProps {
   editingProgram: any | null
-  suggestions: {
-    universities: string[]
-    faculties: string[]
-    majors: string[]
-    curriculums: string[]
-  }
   onClose: () => void
   onSave: (data: any) => Promise<void>
 }
@@ -70,9 +66,17 @@ const selectStyles = {
   })
 }
 
-export default function ProgramFormModal({ editingProgram, suggestions, onClose, onSave }: ProgramFormModalProps) {
+export default function ProgramFormModal({ editingProgram, onClose, onSave }: ProgramFormModalProps) {
 
   const [step, setStep] = useState(1)
+  const [suggestions, setSuggestions] = useState<{universities: string[], faculties: string[], majors: string[], curriculums: string[]}>({
+    universities: [], faculties: [], majors: [], curriculums: []
+  })
+  
+  useEffect(() => {
+    getSuggestions().then(setSuggestions)
+  }, [])
+
   const [formData, setFormData] = useState<any>({
     university: '', faculty: '', major: '', curriculum: '', round: '', status: 'รอประกาศเกณฑ์',
     openDate: null, closeDate: null, interviewEligibleDate: null, resultDate: null, interviewDate: null, confirmationDate: null,
@@ -148,8 +152,13 @@ export default function ProgramFormModal({ editingProgram, suggestions, onClose,
 
   
   useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    const originalScrollY = window.scrollY;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = 'auto'; }
+    return () => { 
+      document.body.style.overflow = originalStyle;
+      window.scrollTo(0, originalScrollY);
+    }
   }, []);
 
   const updateFields = (fields: any) => {

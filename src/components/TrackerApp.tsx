@@ -2,13 +2,15 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { STATUS_META, STATUS_ORDER, INTERVIEW_FORMAT_LABEL } from '@/lib/constants'
 import { computeUrgency, formatDate, isFullDate, todayISO, daysUntil, checkStatusDisabled } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search } from 'lucide-react'
+import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search, Sun, Moon } from 'lucide-react'
 import { createProgram, updateProgram, deleteProgram, toggleDocument, setPriority, setPriorities, updateStatus, setFeePaid } from '@/app/actions'
-import ProgramFormModal from './ProgramFormModal'
-import CalendarView from './CalendarView'
+import dynamic from 'next/dynamic'
+const ProgramFormModal = dynamic(() => import('./ProgramFormModal'), { ssr: false })
+const CalendarView = dynamic(() => import('./CalendarView'), { ssr: false })
 
 function parseCriteria(text: string): { label: string; pct: number }[] {
   if (!text) return []
@@ -242,8 +244,8 @@ function UniversityLogo({ university, logoUrl, size = 28 }: { university: string
   )
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <Image
+      unoptimized
       src={src}
       alt={university}
       title={university}
@@ -257,7 +259,7 @@ function UniversityLogo({ university, logoUrl, size = 28 }: { university: string
   )
 }
 
-export default function TrackerApp({ initialPrograms, suggestions, readOnly = false }: { initialPrograms: any[], suggestions: any, readOnly?: boolean }) {
+export default function TrackerApp({ initialPrograms, readOnly = false }: { initialPrograms: any[], readOnly?: boolean }) {
   const [programs, setPrograms] = useState(initialPrograms)
   const router = useRouter()
   const params = useSearchParams()
@@ -535,7 +537,7 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
   }, [programs]);
 
   const handleExportCSV = () => {
-    const headers = ['มหาวิทยาลัย', 'คณะ', 'สาขา', 'หลักสูตร', 'รอบ', 'สถานะ', 'เปิดรับสมัคร', 'ปิดรับสมัคร', 'ประกาศผล', 'วันสัมภาษณ์', 'หมดเขตยืนยันสิทธิ์', 'เกณฑ์การคัดเลือก', 'ลิงก์ประกาศ', 'ค่าสมัคร']
+    const headers = ['มหาวิทยาลัย', 'คณะ', 'สาขา', 'หลักสูตร', 'รอบ', 'สถานะ', 'เปิดรับสมัคร', 'ปิดรับสมัคร', 'ประกาศมีสิทธิ์สัมภาษณ์', 'วันสัมภาษณ์', 'ประกาศผล', 'หมดเขตยืนยันสิทธิ์', 'เกณฑ์การคัดเลือก', 'ลิงก์ประกาศ', 'ค่าสมัคร']
     const rows = filteredPrograms.map(p => [
       p.university || '',
       p.faculty || '',
@@ -545,8 +547,9 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
       p.status || '',
       p.openDate ? formatDate(p.openDate) : '',
       p.closeDate ? formatDate(p.closeDate) : '',
-      p.resultDate ? formatDate(p.resultDate) : '',
+      p.interviewEligibleDate ? formatDate(p.interviewEligibleDate) : '',
       p.interviewDate ? formatDate(p.interviewDate) : '',
+      p.resultDate ? formatDate(p.resultDate) : '',
       p.confirmationDate ? formatDate(p.confirmationDate) : '',
       p.criteria || '',
       p.link || '',
@@ -571,7 +574,7 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
       <header className="topbar">
         <div className="topbar-inner !py-2.5 !px-4 sm:!py-4 sm:!px-5 !min-h-0">
           <div className="brand !gap-2 sm:!gap-[10px]">
-            <img src="/icon-70.png" alt="TCAS Tracker" className="hidden sm:inline-flex" style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'contain' }} />
+            <Image src="/icon-70.png" alt="TCAS Tracker" className="hidden sm:inline-flex" width={34} height={34} style={{ borderRadius: 8, objectFit: 'contain' }} />
             <div>
               <h1 className="!text-[16px] sm:!text-[19px]">TCAS Tracker</h1>
               <div className="tagline hidden sm:block">ติดตามการยื่นสมัคร Portfolio ทุกที่ ไม่ให้พลาดกำหนดการ</div>
@@ -586,7 +589,7 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
               style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', fontSize: 16 }}
               aria-label={darkMode ? 'Light mode' : 'Dark mode'}
             >
-              {darkMode ? '☀️' : '🌙'}
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <button className="btn !w-[38px] !h-[38px] sm:!w-auto sm:!h-auto !p-0 sm:!px-[15px] sm:!py-[9px] !rounded-full flex justify-center items-center" onClick={handleExportCSV} style={{background: 'var(--surface-3)', border: '1px solid var(--border)'}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:w-[14px] sm:h-[14px]"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -609,13 +612,25 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
               <div className="stat-num num">{programs.length}</div>
               <div className="stat-label">รายการที่ติดตาม</div>
             </div>
+            <div className="stat-tile" data-tone="success">
+              <div className="stat-num num">{programs.filter(p => p.status === 'รอยื่นสมัคร' && isFullDate(p.closeDate) && daysUntil(p.closeDate) >= 0).length}</div>
+              <div className="stat-label">มหาลัยที่เปิดรับอยู่</div>
+            </div>
+            <div className="stat-tile" data-tone="accent">
+              <div className="stat-num num">{programs.filter(p => p.status === 'ยื่นสมัครแล้ว').length}</div>
+              <div className="stat-label">ยื่นสมัครไปแล้ว</div>
+            </div>
+            <div className="stat-tile" data-tone="warn">
+              <div className="stat-num num">{programs.filter(p => p.status === 'ติดสัมภาษณ์').length}</div>
+              <div className="stat-label">ติดสัมภาษณ์แล้ว</div>
+            </div>
+            <div className="stat-tile" data-tone="success" style={{ borderColor: 'var(--success)', background: 'var(--success-soft)' }}>
+              <div className="stat-num num" style={{ color: 'var(--success)' }}>{programs.filter(p => p.status === 'รอยืนยันสิทธิ์' || p.status === 'ยืนยันสิทธิ์แล้ว').length}</div>
+              <div className="stat-label" style={{ color: 'var(--success)' }}>ผ่านการคัดเลือก 🎉</div>
+            </div>
             <div className="stat-tile" data-tone="danger">
               <div className="stat-num num">{urgentCount}</div>
               <div className="stat-label">ใกล้ปิดรับ (≤7 วัน)</div>
-            </div>
-            <div className="stat-tile" data-tone="warn">
-              <div className="stat-num num">{awaitingCount}</div>
-              <div className="stat-label">รอประกาศเกณฑ์</div>
             </div>
             <div className="stat-tile" data-tone="accent">
               <div className="stat-num num">{docsIncompleteCount}</div>
@@ -633,25 +648,25 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
           )}
 
           {unpaidPrograms.length > 0 && (
-            <div style={{ marginTop: 12, marginBottom: 8, padding: 16, borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)' }} />
+            <div style={{ marginTop: 12, marginBottom: 8, padding: '10px 14px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 12.5, color: 'var(--text)', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--danger)' }} />
                 รายการค้างชำระ ({unpaidPrograms.length})
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" style={{ display: 'grid', gap: 8 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2" style={{ display: 'grid', gap: 6 }}>
                 {unpaidPrograms.map(p => (
                   <div
                     key={p.id}
                     style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '10px 12px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)',
+                      padding: '6px 10px', borderRadius: 6, background: 'var(--surface)', border: '1px solid var(--border)',
                     }}
                   >
-                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingRight: 12 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.university}</span>
-                      {p.major && <span style={{ color: 'var(--text-muted)', fontSize: 11.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>{p.major}</span>}
+                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingRight: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.university}</span>
+                      {p.major && <span style={{ color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.major}</span>}
                     </div>
-                    <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--danger)', flexShrink: 0 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--danger)', flexShrink: 0 }}>
                       {p.applicationFee.toLocaleString('th-TH')} ฿
                     </span>
                   </div>
@@ -945,7 +960,6 @@ export default function TrackerApp({ initialPrograms, suggestions, readOnly = fa
 
       {formOpen && (
         <ProgramFormModal
-          suggestions={suggestions}
           editingProgram={editingProgram}
           onClose={() => setFormOpen(false)}
           onSave={async (data) => {
