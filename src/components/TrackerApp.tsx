@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { STATUS_META, STATUS_ORDER, INTERVIEW_FORMAT_LABEL } from '@/lib/constants'
 import { computeUrgency, formatDate, isFullDate, todayISO, daysUntil, checkStatusDisabled, resolveAutoStatus } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search, Sun, Moon } from 'lucide-react'
+import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search, Sun, Moon, LayoutList, SendHorizonal, Mic2, Trophy, Clock, FileWarning } from 'lucide-react'
 import { createProgram, updateProgram, deleteProgram, toggleDocument, setPriority, setPriorities, updateStatus, setFeePaid } from '@/app/actions'
 import dynamic from 'next/dynamic'
 const ProgramFormModal = dynamic(() => import('./ProgramFormModal'), { ssr: false })
@@ -632,29 +632,28 @@ export default function TrackerApp({ initialPrograms, readOnly = false }: { init
       {!readOnly && (
         <>
         <section className="stats">
-            {/* Row 1 — funnel metrics */}
             <div className="stat-tile" data-tone="neutral">
-              <div className="stat-icon">📋</div>
+              <div className="stat-icon"><LayoutList size={18} strokeWidth={1.8} /></div>
               <div className="stat-num num">{programs.length}</div>
               <div className="stat-label">รายการทั้งหมด</div>
             </div>
             <div className="stat-tile" data-tone="success">
-              <div className="stat-icon">📬</div>
+              <div className="stat-icon"><SendHorizonal size={18} strokeWidth={1.8} /></div>
               <div className="stat-num num">{appliedCount}</div>
               <div className="stat-label">ยื่นสมัครไปแล้ว</div>
             </div>
             <div className="stat-tile" data-tone="warn">
-              <div className="stat-icon">🎤</div>
+              <div className="stat-icon"><Mic2 size={18} strokeWidth={1.8} /></div>
               <div className="stat-num num">{interviewedCount}</div>
               <div className="stat-label">ติดสัมภาษณ์แล้ว</div>
             </div>
             <div className="stat-tile stat-tile--highlight" data-tone="success">
-              <div className="stat-icon">🎉</div>
+              <div className="stat-icon"><Trophy size={18} strokeWidth={1.8} /></div>
               <div className="stat-num num">{selectedCount}</div>
               <div className="stat-label">ผ่านการคัดเลือก</div>
             </div>
             <div className="stat-tile" data-tone="danger">
-              <div className="stat-icon">⏰</div>
+              <div className="stat-icon"><Clock size={18} strokeWidth={1.8} /></div>
               <div className="stat-num num">{urgentCount}</div>
               <div className="stat-label">ใกล้ปิดรับ (≤7 วัน)</div>
               {urgentPrograms.length > 0 && (
@@ -666,7 +665,7 @@ export default function TrackerApp({ initialPrograms, readOnly = false }: { init
               )}
             </div>
             <div className="stat-tile" data-tone="accent">
-              <div className="stat-icon">📄</div>
+              <div className="stat-icon"><FileWarning size={18} strokeWidth={1.8} /></div>
               <div className="stat-num num">{docsIncompleteCount}</div>
               <div className="stat-label">เอกสารยังไม่ครบ</div>
             </div>

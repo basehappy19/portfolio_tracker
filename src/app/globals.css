@@ -159,7 +159,7 @@
   .stat-tile[data-tone="warn"] .stat-num{ color:var(--warn); }
   .stat-tile[data-tone="accent"] .stat-num{ color:var(--accent); }
   .stat-tile[data-tone="success"] .stat-num{ color:var(--success); }
-  .stat-tile .stat-icon{ font-size:20px; line-height:1; margin-bottom:6px; }
+  .stat-tile .stat-icon{ display:inline-flex; align-items:center; margin-bottom:8px; opacity:0.7; }
   .stat-tile--highlight{ border-color:var(--success); background:var(--success-soft); }
   .stat-tile--highlight .stat-num{ color:var(--success); }
   .stat-tile--highlight .stat-label{ color:var(--success); }
