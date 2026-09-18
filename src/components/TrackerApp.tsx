@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { STATUS_META, STATUS_ORDER, INTERVIEW_FORMAT_LABEL } from '@/lib/constants'
-import { computeUrgency, formatDate, isFullDate, todayISO, daysUntil, checkStatusDisabled } from '@/lib/utils'
+import { computeUrgency, formatDate, isFullDate, todayISO, daysUntil, checkStatusDisabled, resolveAutoStatus } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search, Sun, Moon } from 'lucide-react'
 import { createProgram, updateProgram, deleteProgram, toggleDocument, setPriority, setPriorities, updateStatus, setFeePaid } from '@/app/actions'
@@ -264,6 +264,25 @@ export default function TrackerApp({ initialPrograms, readOnly = false }: { init
   const router = useRouter()
   const params = useSearchParams()
 
+  // Auto-status sync on mount or when programs change
+  useEffect(() => {
+    setPrograms(prev => {
+      let changed = false
+      const updated = prev.map(p => {
+        const nextStatus = resolveAutoStatus(p)
+        if (nextStatus !== p.status) {
+          changed = true
+          if (!readOnly) {
+            updateStatus(p.id, nextStatus).catch(console.error)
+          }
+          return { ...p, status: nextStatus }
+        }
+        return p
+      })
+      return changed ? updated : prev
+    })
+  }, [readOnly])
+
   // Dark mode
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -356,8 +375,13 @@ export default function TrackerApp({ initialPrograms, readOnly = false }: { init
   }, [programs, filterStatuses, extraFilters, search, sort])
 
   // Stats
-  const urgentCount = programs.filter(p => computeUrgency(p).mode === 'urgent').length
-  const awaitingCount = programs.filter(p => p.status === 'รอประกาศเกณฑ์').length
+  const APPLIED_STATUSES = ['ยื่นสมัครแล้ว', 'ติดสัมภาษณ์', 'รอประกาศผล', 'ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'สละสิทธิ์']
+  const INTERVIEWED_STATUSES = ['ติดสัมภาษณ์', 'รอประกาศผล', 'ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'สละสิทธิ์']
+  const urgentPrograms = programs.filter(p => computeUrgency(p).mode === 'urgent')
+  const urgentCount = urgentPrograms.length
+  const appliedCount = programs.filter(p => APPLIED_STATUSES.includes(p.status)).length
+  const interviewedCount = programs.filter(p => INTERVIEWED_STATUSES.includes(p.status)).length
+  const selectedCount = programs.filter(p => p.status === 'ยืนยันสิทธิ์แล้ว' || p.status === 'สละสิทธิ์').length
   const docsIncompleteCount = programs.filter(p => p.documents?.some((d: any) => !d.done)).length
 
   // Cost summary (ค่าสมัครรวม)
@@ -607,32 +631,42 @@ export default function TrackerApp({ initialPrograms, readOnly = false }: { init
 
       {!readOnly && (
         <>
-          <section className="stats">
-            <div className="stat-tile">
+        <section className="stats">
+            {/* Row 1 — funnel metrics */}
+            <div className="stat-tile" data-tone="neutral">
+              <div className="stat-icon">📋</div>
               <div className="stat-num num">{programs.length}</div>
-              <div className="stat-label">รายการที่ติดตาม</div>
+              <div className="stat-label">รายการทั้งหมด</div>
             </div>
             <div className="stat-tile" data-tone="success">
-              <div className="stat-num num">{programs.filter(p => p.status === 'รอยื่นสมัคร' && isFullDate(p.closeDate) && daysUntil(p.closeDate) >= 0).length}</div>
-              <div className="stat-label">มหาลัยที่เปิดรับอยู่</div>
-            </div>
-            <div className="stat-tile" data-tone="accent">
-              <div className="stat-num num">{programs.filter(p => p.status === 'ยื่นสมัครแล้ว').length}</div>
+              <div className="stat-icon">📬</div>
+              <div className="stat-num num">{appliedCount}</div>
               <div className="stat-label">ยื่นสมัครไปแล้ว</div>
             </div>
             <div className="stat-tile" data-tone="warn">
-              <div className="stat-num num">{programs.filter(p => p.status === 'ติดสัมภาษณ์').length}</div>
+              <div className="stat-icon">🎤</div>
+              <div className="stat-num num">{interviewedCount}</div>
               <div className="stat-label">ติดสัมภาษณ์แล้ว</div>
             </div>
-            <div className="stat-tile" data-tone="success" style={{ borderColor: 'var(--success)', background: 'var(--success-soft)' }}>
-              <div className="stat-num num" style={{ color: 'var(--success)' }}>{programs.filter(p => p.status === 'รอยืนยันสิทธิ์' || p.status === 'ยืนยันสิทธิ์แล้ว').length}</div>
-              <div className="stat-label" style={{ color: 'var(--success)' }}>ผ่านการคัดเลือก 🎉</div>
+            <div className="stat-tile stat-tile--highlight" data-tone="success">
+              <div className="stat-icon">🎉</div>
+              <div className="stat-num num">{selectedCount}</div>
+              <div className="stat-label">ผ่านการคัดเลือก</div>
             </div>
             <div className="stat-tile" data-tone="danger">
+              <div className="stat-icon">⏰</div>
               <div className="stat-num num">{urgentCount}</div>
               <div className="stat-label">ใกล้ปิดรับ (≤7 วัน)</div>
+              {urgentPrograms.length > 0 && (
+                <ul className="stat-sub-list">
+                  {urgentPrograms.map(p => (
+                    <li key={p.id}>{p.university}</li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div className="stat-tile" data-tone="accent">
+              <div className="stat-icon">📄</div>
               <div className="stat-num num">{docsIncompleteCount}</div>
               <div className="stat-label">เอกสารยังไม่ครบ</div>
             </div>
@@ -729,7 +763,7 @@ export default function TrackerApp({ initialPrograms, readOnly = false }: { init
 
           {/* TERMINAL statuses — collapsed by default */}
           {(() => {
-            const TERMINAL = ['ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'สละสิทธิ์', 'ยกเลิก/ไม่ยื่น']
+            const TERMINAL = ['ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'สละสิทธิ์']
             const activePrograms    = filteredPrograms.filter(p => !TERMINAL.includes(p.status))
             const completedPrograms = filteredPrograms.filter(p =>  TERMINAL.includes(p.status))
 

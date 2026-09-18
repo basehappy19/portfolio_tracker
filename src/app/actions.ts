@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
+import { resolveAutoStatus } from '@/lib/utils'
 
 export async function getPrograms() {
   const programs = await prisma.program.findMany({
@@ -11,11 +12,35 @@ export async function getPrograms() {
       faculty: true,
       major: true,
       curriculum: true,
-      round: true
+      round: true,
+      status: true
     },
     orderBy: { createdAt: 'asc' }
   })
   
+  const updates: Promise<any>[] = []
+  for (const p of programs) {
+    const curStatus = p.status?.name || 'รอประกาศเกณฑ์'
+    const nextStatus = resolveAutoStatus({ ...p, status: curStatus })
+    if (nextStatus !== curStatus) {
+      p.status = { ...p.status, name: nextStatus } as any
+      updates.push((async () => {
+        const s = await prisma.status.upsert({
+          where: { name: nextStatus },
+          update: {},
+          create: { name: nextStatus }
+        })
+        return prisma.program.update({
+          where: { id: p.id },
+          data: { statusId: s.id }
+        })
+      })())
+    }
+  }
+  if (updates.length > 0) {
+    await Promise.all(updates)
+  }
+
   return programs.map((p: any) => ({
     ...p,
     university: p.university?.name || '',
@@ -23,6 +48,7 @@ export async function getPrograms() {
     major: p.major?.name || '',
     curriculum: p.curriculum?.name || '',
     round: p.round?.name || '',
+    status: p.status?.name || 'รอประกาศเกณฑ์',
   }))
 }
 
@@ -46,7 +72,7 @@ export async function getSuggestions() {
 }
 
 async function resolveRelations(data: any) {
-  const { university, faculty, major, curriculum, round, customSystem, ...rest } = data
+  const { university, faculty, major, curriculum, round, status, customSystem, ...rest } = data
   const relations: any = {}
 
   if (university) {
@@ -77,12 +103,20 @@ async function resolveRelations(data: any) {
   } else {
     relations.roundId = null
   }
+  if (status) {
+    const s = await prisma.status.upsert({ where: { name: status }, update: {}, create: { name: status } })
+    relations.statusId = s.id
+  } else {
+    const s = await prisma.status.upsert({ where: { name: 'รอประกาศเกณฑ์' }, update: {}, create: { name: 'รอประกาศเกณฑ์' } })
+    relations.statusId = s.id
+  }
 
   return { rest, relations }
 }
 
 export async function createProgram(data: any) {
   const { documents, ...programData } = data
+  programData.status = resolveAutoStatus(programData)
   const { rest, relations } = await resolveRelations(programData)
   
   if (relations.universityId) {
@@ -111,7 +145,7 @@ export async function createProgram(data: any) {
         create: documents || []
       }
     },
-    include: { documents: true, university: true, faculty: true, major: true, curriculum: true, round: true }
+    include: { documents: true, university: true, faculty: true, major: true, curriculum: true, round: true, status: true }
   })
   revalidatePath('/')
   
@@ -122,11 +156,13 @@ export async function createProgram(data: any) {
     major: created.major?.name || '',
     curriculum: created.curriculum?.name || '',
     round: created.round?.name || '',
+    status: created.status?.name || 'รอประกาศเกณฑ์',
   }
 }
 
 export async function updateProgram(id: string, data: any) {
   const { documents, ...programData } = data
+  programData.status = resolveAutoStatus(programData)
   const { rest, relations } = await resolveRelations(programData)
   
   if (relations.universityId) {
@@ -162,7 +198,8 @@ export async function updateProgram(id: string, data: any) {
       faculty: true,
       major: true,
       curriculum: true,
-      round: true
+      round: true,
+      status: true,
     }
   })
   
@@ -176,6 +213,7 @@ export async function updateProgram(id: string, data: any) {
     major: updated.major?.name || '',
     curriculum: updated.curriculum?.name || '',
     round: updated.round?.name || '',
+    status: updated.status?.name || 'รอประกาศเกณฑ์',
   }
 }
 
@@ -232,10 +270,15 @@ export async function setPriorities(updates: { id: string, priority: number }[])
   revalidatePath('/')
 }
 
-export async function updateStatus(programId: string, status: string) {
+export async function updateStatus(programId: string, statusName: string) {
+  const s = await prisma.status.upsert({
+    where: { name: statusName },
+    update: {},
+    create: { name: statusName }
+  })
   await prisma.program.update({
     where: { id: programId },
-    data: { status }
+    data: { statusId: s.id }
   })
   revalidatePath('/')
 }

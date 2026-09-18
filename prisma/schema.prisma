@@ -23,7 +23,8 @@ model Program {
   roundId         String?
   round           Round?      @relation(fields: [roundId], references: [id])
 
-  status          String     @default("รอประกาศเกณฑ์")
+  statusId        String?
+  status          Status?     @relation(fields: [statusId], references: [id])
   openDate        String?
   closeDate       String?
   resultDate      String?
@@ -83,6 +84,12 @@ model Curriculum {
 }
 
 model Round {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  programs Program[]
+}
+
+model Status {
   id       String    @id @default(uuid())
   name     String    @unique
   programs Program[]

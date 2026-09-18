@@ -158,6 +158,14 @@
   .stat-tile[data-tone="danger"] .stat-num{ color:var(--danger); }
   .stat-tile[data-tone="warn"] .stat-num{ color:var(--warn); }
   .stat-tile[data-tone="accent"] .stat-num{ color:var(--accent); }
+  .stat-tile[data-tone="success"] .stat-num{ color:var(--success); }
+  .stat-tile .stat-icon{ font-size:20px; line-height:1; margin-bottom:6px; }
+  .stat-tile--highlight{ border-color:var(--success); background:var(--success-soft); }
+  .stat-tile--highlight .stat-num{ color:var(--success); }
+  .stat-tile--highlight .stat-label{ color:var(--success); }
+  .stat-sub-list{ list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:3px; }
+  .stat-sub-list li{ font-size:11px; color:var(--danger); background:var(--danger-soft); border-radius:4px; padding:2px 7px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+
 
   /* ---------- Toolbar ---------- */
   .toolbar{
@@ -516,6 +524,8 @@ details.more summary:hover { color: var(--accent, #6366f1); }
 .stat-tile:nth-child(2){ animation-delay: 0.10s; }
 .stat-tile:nth-child(3){ animation-delay: 0.15s; }
 .stat-tile:nth-child(4){ animation-delay: 0.20s; }
+.stat-tile:nth-child(5){ animation-delay: 0.25s; }
+.stat-tile:nth-child(6){ animation-delay: 0.30s; }
 
 /* Topbar slide down */
 .topbar { animation: fadeIn 0.3s ease both; }

@@ -5,7 +5,7 @@ import { STATUS_ORDER } from '@/lib/constants'
 import ThaiDatePicker from './ThaiDatePicker'
 import toast from 'react-hot-toast'
 import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search } from 'lucide-react'
-import { checkStatusDisabled } from '@/lib/utils'
+import { checkStatusDisabled, resolveAutoStatus } from '@/lib/utils'
 
 import CreatableSelect from 'react-select/creatable'
 
@@ -117,6 +117,14 @@ export default function ProgramFormModal({ editingProgram, onClose, onSave }: Pr
     return new Date(y, m - 1, d)
   }
 
+  const formatDateObj = (d: Date | null) => {
+    if (!d) return null
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
   useEffect(() => {
     if (editingProgram) {
       setFormData({
@@ -168,22 +176,26 @@ export default function ProgramFormModal({ editingProgram, onClose, onSave }: Pr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Convert dates to YYYY-MM-DD
-    const formatDateObj = (d: Date | null) => {
-      if (!d) return null
-      const y = d.getFullYear()
-      const m = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      return `${y}-${m}-${day}`
-    }
-    
     // criteriaItems เป็น UI-only state — ไม่ส่งไป server
     const { criteriaItems, requirements, ...formDataWithoutCriteriaItems } = formData
 
+    const openDateStr = formatDateObj(formData.openDate)
+    const closeDateStr = formatDateObj(formData.closeDate)
+    const interviewDateStr = formatDateObj(formData.interviewDate)
+    const resultDateStr = formatDateObj(formData.resultDate)
+    const status = resolveAutoStatus({
+      status: formData.status,
+      openDate: openDateStr,
+      closeDate: closeDateStr,
+      interviewDate: interviewDateStr,
+      resultDate: resultDateStr
+    })
+
     const finalData = {
       ...formDataWithoutCriteriaItems,
-      openDate: formatDateObj(formData.openDate),
-      closeDate: formatDateObj(formData.closeDate),
+      status,
+      openDate: openDateStr,
+      closeDate: closeDateStr,
       interviewEligibleDate: formatDateObj(formData.interviewEligibleDate),
       resultDate: formatDateObj(formData.resultDate),
       requirements: requirements.filter((r: any) => r.label.trim() !== '' || r.value.trim() !== ''),
@@ -338,11 +350,51 @@ export default function ProgramFormModal({ editingProgram, onClose, onSave }: Pr
           {step === 2 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease' }}>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
-                <div><label style={lbl}>เปิดรับสมัคร</label><ThaiDatePicker selected={formData.openDate} onChange={d => updateFields({openDate: d})} style={inp} placeholderText="เลือกวัน" /></div>
-                <div><label style={lbl}>ปิดรับสมัคร</label><ThaiDatePicker selected={formData.closeDate} onChange={d => updateFields({closeDate: d})} style={inp} placeholderText="เลือกวัน" /></div>
+                <div><label style={lbl}>เปิดรับสมัคร</label><ThaiDatePicker selected={formData.openDate} onChange={d => {
+                  const openStr = formatDateObj(d)
+                  const closeStr = formatDateObj(formData.closeDate)
+                  const nextStatus = resolveAutoStatus({
+                    status: formData.status,
+                    openDate: openStr,
+                    closeDate: closeStr,
+                    interviewDate: formatDateObj(formData.interviewDate),
+                    resultDate: formatDateObj(formData.resultDate)
+                  })
+                  updateFields({ openDate: d, status: nextStatus })
+                }} style={inp} placeholderText="เลือกวัน" /></div>
+                <div><label style={lbl}>ปิดรับสมัคร</label><ThaiDatePicker selected={formData.closeDate} onChange={d => {
+                  const openStr = formatDateObj(formData.openDate)
+                  const closeStr = formatDateObj(d)
+                  const nextStatus = resolveAutoStatus({
+                    status: formData.status,
+                    openDate: openStr,
+                    closeDate: closeStr,
+                    interviewDate: formatDateObj(formData.interviewDate),
+                    resultDate: formatDateObj(formData.resultDate)
+                  })
+                  updateFields({ closeDate: d, status: nextStatus })
+                }} style={inp} placeholderText="เลือกวัน" /></div>
                 <div><label style={lbl}>ประกาศมีสิทธิ์สัมภาษณ์</label><ThaiDatePicker selected={formData.interviewEligibleDate} onChange={(d: any) => updateFields({interviewEligibleDate: d})} style={inp} placeholderText="เลือกวัน" /></div>
-                <div><label style={{...lbl, color:'#6366f1'}}><Calendar size={12} style={{display:'inline', marginBottom:-2}} /> ประกาศผล</label><ThaiDatePicker selected={formData.resultDate} onChange={d => updateFields({resultDate: d})} style={{...inp, borderColor:'#6366f133'}} placeholderText="เลือกวัน" /></div>
-                <div><label style={{...lbl, color:'#f59e0b'}}><Calendar size={12} style={{display:'inline', marginBottom:-2}} /> วันสัมภาษณ์</label><ThaiDatePicker selected={formData.interviewDate} onChange={d => updateFields({interviewDate: d})} style={{...inp, borderColor:'#f59e0b33'}} placeholderText="เลือกวัน" /></div>
+                <div><label style={{...lbl, color:'#6366f1'}}><Calendar size={12} style={{display:'inline', marginBottom:-2}} /> ประกาศผล</label><ThaiDatePicker selected={formData.resultDate} onChange={d => {
+                  const nextStatus = resolveAutoStatus({
+                    status: formData.status,
+                    openDate: formatDateObj(formData.openDate),
+                    closeDate: formatDateObj(formData.closeDate),
+                    interviewDate: formatDateObj(formData.interviewDate),
+                    resultDate: formatDateObj(d)
+                  })
+                  updateFields({ resultDate: d, status: nextStatus })
+                }} style={{...inp, borderColor:'#6366f133'}} placeholderText="เลือกวัน" /></div>
+                <div><label style={{...lbl, color:'#f59e0b'}}><Calendar size={12} style={{display:'inline', marginBottom:-2}} /> วันสัมภาษณ์</label><ThaiDatePicker selected={formData.interviewDate} onChange={d => {
+                  const nextStatus = resolveAutoStatus({
+                    status: formData.status,
+                    openDate: formatDateObj(formData.openDate),
+                    closeDate: formatDateObj(formData.closeDate),
+                    interviewDate: formatDateObj(d),
+                    resultDate: formatDateObj(formData.resultDate)
+                  })
+                  updateFields({ interviewDate: d, status: nextStatus })
+                }} style={{...inp, borderColor:'#f59e0b33'}} placeholderText="เลือกวัน" /></div>
                 <div><label style={{...lbl, color:'#10b981'}}><Check size={12} style={{display:'inline', marginBottom:-2}} /> หมดเขตยืนยันสิทธิ์</label><ThaiDatePicker selected={formData.confirmationDate} onChange={d => updateFields({confirmationDate: d})} style={{...inp, borderColor:'#10b98133'}} placeholderText="เลือกวัน" /></div>
               </div>
 
