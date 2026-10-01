@@ -322,7 +322,8 @@ export default function TrackerApp({ initialPrograms, readOnly = false }: { init
       <header className="topbar">
         <div className="container topbar-inner">
           <a className="brand" href={readOnly ? '/guest' : '/'}>
-            <div className="brand-mark"><span>TC</span></div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="brand-logo" src="/icon-70.png" alt="TCAS70" width={29} height={36} />
             <div>
               <div className="brand-name">TCAS Tracker</div>
               <div className="brand-sub">{readOnly ? 'โหมดดูอย่างเดียว' : 'ไม่พลาดทุกกำหนดการ Portfolio'}</div>
