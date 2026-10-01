@@ -1,15 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { STATUS_ORDER } from '@/lib/constants'
-import ThaiDatePicker from './ThaiDatePicker'
-import toast from 'react-hot-toast'
-import { Check, X, MapPin, Building, ExternalLink, Paperclip, AlertTriangle, Star, Trash2, Edit2, ChevronDown, ChevronRight, Calendar, Search } from 'lucide-react'
-import { checkStatusDisabled, resolveAutoStatus } from '@/lib/utils'
-
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import CreatableSelect from 'react-select/creatable'
-
+import toast from 'react-hot-toast'
+import { ImagePlus, Plus, Trash2, X } from 'lucide-react'
+import { STATUS_ORDER } from '@/lib/constants'
+import { checkStatusDisabled, resolveAutoStatus } from '@/lib/utils'
 import { getSuggestions } from '@/app/actions'
+import ThaiDatePicker from './ThaiDatePicker'
 
 interface ProgramFormModalProps {
   editingProgram: any | null
@@ -17,558 +15,425 @@ interface ProgramFormModalProps {
   onSave: (data: any) => Promise<void>
 }
 
-const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }
-const inp = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 14 }
+const STEPS = ['หลักสูตร', 'กำหนดการ', 'เกณฑ์และเอกสาร']
+const DOC_SUGGESTIONS = ['ปพ.1', 'Portfolio (PDF)', 'สำเนาบัตรประชาชน', 'รูปถ่ายหน้าตรง', 'หนังสือรับรองจากโรงเรียน', 'คลิปแนะนำตัว', 'เรียงความ', 'ผลสอบภาษาอังกฤษ', 'เกียรติบัตร']
+const CRIT_SUGGESTIONS = ['Portfolio', 'GPAX', 'สัมภาษณ์', 'TGAT', 'TPAT3', 'A-Level']
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2)
 
-const selectStyles = {
-  control: (base: any, state: any) => ({
-    ...base,
-    background: 'var(--surface-2)',
-    borderColor: state.isFocused ? 'var(--text)' : 'var(--border)',
-    borderRadius: 8,
-    boxShadow: state.isFocused ? '0 0 0 1px var(--text)' : 'none',
-    fontSize: 14,
-    minHeight: 38,
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      borderColor: state.isFocused ? 'var(--text)' : 'var(--border-hover)'
+const parseDateStr = (str: string | null | undefined) => {
+  if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return null
+  const [y, m, d] = str.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+const formatDateObj = (d: Date | null) => {
+  if (!d) return null
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const parseCriteriaToItems = (text: string) => {
+  if (!text) return []
+  return text.split(',').map(s => s.trim()).filter(Boolean).map(part => {
+    const m = part.match(/^(.*?)\s*(\d+(?:\.\d+)?)\s*%$/)
+    return m ? { id: uid(), label: m[1].trim(), pct: m[2] } : { id: uid(), label: part, pct: '' }
+  })
+}
+const stringifyCriteriaItems = (items: any[]) => items
+  .filter(it => it?.label?.trim())
+  .map(it => { const p = String(it.pct ?? '').trim(); return p ? `${it.label.trim()} ${p}%` : it.label.trim() })
+  .join(', ')
+
+// ย่อรูปโลโก้ให้ไม่เกิน 256px ก่อนเก็บ เพื่อไม่ให้ฐานข้อมูลบวม
+function shrinkImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = reject
+    reader.onload = () => {
+      const img = new Image()
+      img.onerror = () => resolve(reader.result as string)
+      img.onload = () => {
+        const max = 256
+        const scale = Math.min(1, max / Math.max(img.width, img.height))
+        if (scale === 1 && file.size < 120_000) return resolve(reader.result as string)
+        const c = document.createElement('canvas')
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale)
+        c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
+        resolve(c.toDataURL('image/png'))
+      }
+      img.src = reader.result as string
     }
-  }),
-  menu: (base: any) => ({ 
-    ...base, 
-    fontSize: 14, 
-    zIndex: 9999,
-    borderRadius: 8,
-    boxShadow: 'var(--shadow-lg)',
-    background: 'var(--surface)'
-  }),
-  option: (base: any, state: any) => ({
-    ...base,
-    background: state.isSelected 
-      ? 'var(--text)' 
-      : state.isFocused 
-        ? 'var(--surface-3)' 
-        : 'transparent',
-    color: state.isSelected ? 'var(--bg)' : 'var(--text)',
-    cursor: 'pointer',
-    '&:active': {
-      background: 'var(--text)',
-      color: 'var(--bg)'
-    }
-  }),
-  singleValue: (base: any) => ({
-    ...base,
-    color: 'var(--text)'
-  }),
-  input: (base: any) => ({
-    ...base,
-    color: 'var(--text)'
+    reader.readAsDataURL(file)
   })
 }
 
-export default function ProgramFormModal({ editingProgram, onClose, onSave }: ProgramFormModalProps) {
+const rsProps = {
+  classNamePrefix: 'rs',
+  isClearable: true,
+  formatCreateLabel: (v: string) => `ใช้ "${v}"`,
+  noOptionsMessage: () => 'พิมพ์เพื่อเพิ่มใหม่',
+}
 
-  const [step, setStep] = useState(1)
-  const [suggestions, setSuggestions] = useState<{universities: string[], faculties: string[], majors: string[], curriculums: string[]}>({
-    universities: [], faculties: [], majors: [], curriculums: []
-  })
-  
-  useEffect(() => {
-    getSuggestions().then(setSuggestions)
-  }, [])
-
-  const [formData, setFormData] = useState<any>({
+function initialState(p: any | null) {
+  const base = {
     university: '', faculty: '', major: '', curriculum: '', round: '', status: 'รอประกาศเกณฑ์',
     openDate: null, closeDate: null, interviewEligibleDate: null, resultDate: null, interviewDate: null, confirmationDate: null,
-    interviewFormat: '', interviewPlace: '', criteria: '', criteriaItems: [], link: '', admissionLink: '', logoUrl: '', note: '', tcasFolio: false, submissionSystem: '', customSystem: false, requirements: [{label: 'GPAX ขั้นต่ำ', value: ''}, {label: 'GPA ขั้นต่ำ', value: ''}],
-    applicationFee: '', feePaid: false, documents: []
-  })
+    interviewFormat: '', interviewPlace: '', criteria: '', criteriaItems: [] as any[], link: '', admissionLink: '', logoUrl: '', note: '',
+    tcasFolio: false, submissionSystem: '', customSystem: false,
+    requirements: [{ label: 'GPAX ขั้นต่ำ', value: '' }, { label: 'GPA ขั้นต่ำ', value: '' }],
+    applicationFee: '', feePaid: false, documents: [] as any[],
+  }
+  if (!p) return base
+  return {
+    ...base,
+    university: p.university || '', faculty: p.faculty || '', major: p.major || '', curriculum: p.curriculum || '', round: p.round || '',
+    status: p.status || 'รอประกาศเกณฑ์',
+    openDate: parseDateStr(p.openDate), closeDate: parseDateStr(p.closeDate), interviewEligibleDate: parseDateStr(p.interviewEligibleDate),
+    resultDate: parseDateStr(p.resultDate), interviewDate: parseDateStr(p.interviewDate), confirmationDate: parseDateStr(p.confirmationDate),
+    interviewFormat: p.interviewFormat || '', interviewPlace: p.interviewPlace || '',
+    criteria: p.criteria || '', criteriaItems: parseCriteriaToItems(p.criteria || ''),
+    link: p.link || '', admissionLink: p.admissionLink || '', logoUrl: p.logoUrl || '', note: p.note || '',
+    tcasFolio: !!p.tcasFolio, submissionSystem: p.submissionSystem || '', customSystem: !!p.submissionSystem,
+    requirements: p.requirements ? (typeof p.requirements === 'string' ? JSON.parse(p.requirements) : p.requirements) : base.requirements,
+    applicationFee: p.applicationFee?.toString() || '', feePaid: !!p.feePaid,
+    documents: p.documents ? p.documents.map((d: any) => ({ ...d })) : [],
+  }
+}
 
-  const parseCriteriaToItems = (text: string) => {
-    if (!text) return []
-    const items = []
-    const parts = text.split(',')
-    for (const part of parts) {
-      const p = part.trim()
-      if (!p) continue
-      const match = p.match(/^(.*?)\s*(\d+(?:\.\d+)?)\s*%$/)
-      if (match) {
-        items.push({ id: Date.now().toString() + Math.random().toString(), label: match[1].trim(), pct: match[2] })
-      } else {
-        items.push({ id: Date.now().toString() + Math.random().toString(), label: p, pct: '' })
+export default function ProgramFormModal({ editingProgram, onClose, onSave }: ProgramFormModalProps) {
+  const [step, setStep] = useState(1)
+  const [saving, setSaving] = useState(false)
+  const [suggestions, setSuggestions] = useState({ universities: [] as string[], faculties: [] as string[], majors: [] as string[], curriculums: [] as string[] })
+  const [formData, setFormData] = useState<any>(() => initialState(editingProgram))
+  const [initialJson] = useState(() => JSON.stringify(initialState(editingProgram)))
+  const bodyRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { getSuggestions().then(setSuggestions).catch(() => {}) }, [])
+  useEffect(() => { bodyRef.current?.scrollTo({ top: 0 }) }, [step])
+
+  // ล็อกการเลื่อนหน้าหลักระหว่างเปิดฟอร์ม
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
+  const dirty = JSON.stringify(formData) !== initialJson
+  const step1Valid = !!formData.university && !!formData.faculty
+
+  const tryClose = useCallback(() => {
+    if (dirty && !window.confirm('ยังไม่ได้บันทึกการเปลี่ยนแปลง ต้องการปิดฟอร์มหรือไม่?')) return
+    onClose()
+  }, [dirty, onClose])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.react-datepicker-popper, .rs__menu')) tryClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [tryClose])
+
+  const update = (fields: any) => setFormData((prev: any) => ({ ...prev, ...fields }))
+
+  // เปลี่ยนวันที่ → คำนวณสถานะอัตโนมัติใหม่ (เหมือนระบบเดิม)
+  const setDate = (field: string, d: Date | null) => {
+    setFormData((prev: any) => {
+      const next = { ...prev, [field]: d }
+      if (['openDate', 'closeDate', 'interviewDate', 'resultDate'].includes(field)) {
+        next.status = resolveAutoStatus({
+          status: prev.status,
+          openDate: formatDateObj(next.openDate), closeDate: formatDateObj(next.closeDate),
+          interviewDate: formatDateObj(next.interviewDate), resultDate: formatDateObj(next.resultDate),
+        })
       }
-    }
-    return items
+      return next
+    })
   }
 
-  const stringifyCriteriaItems = (items: any[]) => {
-    return items
-      .filter(it => it?.label?.trim() !== '')
-      .map(it => {
-        const p = it.pct?.trim() || ''
-        return p ? `${it.label.trim()} ${p}%` : it.label.trim()
-      })
-      .join(', ')
+  const updateList = (key: string, i: number, patch: any) => {
+    const list = [...formData[key]]; list[i] = { ...list[i], ...patch }; update({ [key]: list })
+  }
+  const removeFrom = (key: string, i: number) => update({ [key]: formData[key].filter((_: any, idx: number) => idx !== i) })
+
+  const critSum = formData.criteriaItems.reduce((s: number, it: any) => s + (parseFloat(it.pct) || 0), 0)
+
+  const goStep = (s: number) => {
+    if (s > 1 && !step1Valid) { toast.error('กรอกมหาวิทยาลัยและคณะก่อน'); setStep(1); return }
+    setStep(s)
   }
 
-  const parseDateStr = (str: string | null | undefined) => {
-    if (!str || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return null
-    const [y, m, d] = str.split('-').map(Number)
-    return new Date(y, m - 1, d)
-  }
-
-  const formatDateObj = (d: Date | null) => {
-    if (!d) return null
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
-  }
-
-  useEffect(() => {
-    if (editingProgram) {
-      setFormData({
-        university: editingProgram.university || '',
-        faculty: editingProgram.faculty || '',
-        major: editingProgram.major || '',
-        curriculum: editingProgram.curriculum || '',
-        round: editingProgram.round || '',
-        status: editingProgram.status || 'รอประกาศเกณฑ์',
-        openDate: parseDateStr(editingProgram.openDate),
-        closeDate: parseDateStr(editingProgram.closeDate),
-        interviewEligibleDate: parseDateStr(editingProgram.interviewEligibleDate),
-        resultDate: parseDateStr(editingProgram.resultDate),
-        interviewDate: parseDateStr(editingProgram.interviewDate),
-        confirmationDate: parseDateStr(editingProgram.confirmationDate),
-        interviewFormat: editingProgram.interviewFormat || '',
-        interviewPlace: editingProgram.interviewPlace || '',
-        criteria: editingProgram.criteria || '',
-        criteriaItems: parseCriteriaToItems(editingProgram.criteria || ''),
-        link: editingProgram.link || '',
-        admissionLink: editingProgram.admissionLink || '',
-        logoUrl: editingProgram.logoUrl || '',
-        note: editingProgram.note || '',
-        tcasFolio: !!editingProgram.tcasFolio,
-        submissionSystem: editingProgram.submissionSystem || '', customSystem: !!editingProgram.submissionSystem,
-        requirements: editingProgram.requirements ? (typeof editingProgram.requirements === 'string' ? JSON.parse(editingProgram.requirements) : editingProgram.requirements) : [{label: 'GPAX ขั้นต่ำ', value: ''}, {label: 'GPA ขั้นต่ำ', value: ''}],
-        applicationFee: editingProgram.applicationFee?.toString() || '',
-        feePaid: !!editingProgram.feePaid,
-        documents: editingProgram.documents ? [...editingProgram.documents] : []
-      })
-    }
-  }, [editingProgram])
-
-  
-  useEffect(() => {
-    const originalStyle = window.getComputedStyle(document.body).overflow;
-    const originalScrollY = window.scrollY;
-    document.body.style.overflow = 'hidden';
-    return () => { 
-      document.body.style.overflow = originalStyle;
-      window.scrollTo(0, originalScrollY);
-    }
-  }, []);
-
-  const updateFields = (fields: any) => {
-    setFormData((prev: any) => ({ ...prev, ...fields }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    // criteriaItems เป็น UI-only state — ไม่ส่งไป server
-    const { criteriaItems, requirements, ...formDataWithoutCriteriaItems } = formData
-
+  const handleSubmit = async () => {
+    if (!step1Valid) { toast.error('กรอกมหาวิทยาลัยและคณะก่อน'); setStep(1); return }
+    const { criteriaItems, requirements, ...rest } = formData
     const openDateStr = formatDateObj(formData.openDate)
     const closeDateStr = formatDateObj(formData.closeDate)
     const interviewDateStr = formatDateObj(formData.interviewDate)
     const resultDateStr = formatDateObj(formData.resultDate)
-    const status = resolveAutoStatus({
-      status: formData.status,
-      openDate: openDateStr,
-      closeDate: closeDateStr,
-      interviewDate: interviewDateStr,
-      resultDate: resultDateStr
-    })
-
     const finalData = {
-      ...formDataWithoutCriteriaItems,
-      status,
+      ...rest,
+      status: resolveAutoStatus({ status: formData.status, openDate: openDateStr, closeDate: closeDateStr, interviewDate: interviewDateStr, resultDate: resultDateStr }),
       openDate: openDateStr,
       closeDate: closeDateStr,
       interviewEligibleDate: formatDateObj(formData.interviewEligibleDate),
-      resultDate: formatDateObj(formData.resultDate),
-      requirements: requirements.filter((r: any) => r.label.trim() !== '' || r.value.trim() !== ''),
-      interviewDate: formatDateObj(formData.interviewDate),
+      resultDate: resultDateStr,
+      interviewDate: interviewDateStr,
       confirmationDate: formatDateObj(formData.confirmationDate),
+      requirements: requirements.filter((r: any) => (r.label || '').trim() !== '' || (r.value || '').trim() !== ''),
       criteria: stringifyCriteriaItems(criteriaItems),
       applicationFee: formData.applicationFee ? Math.round(parseFloat(formData.applicationFee)) : null,
-      documents: formData.documents.filter((d: any) => d.text.trim() !== '').map((d: any) => ({ text: d.text, done: d.done }))
+      documents: formData.documents.filter((d: any) => (d.text || '').trim() !== '').map((d: any) => ({ text: d.text, done: !!d.done })),
     }
-
-    await onSave(finalData)
+    setSaving(true)
+    try { await onSave(finalData) } finally { setSaving(false) }
   }
 
+  const statusOptions = useMemo(() => STATUS_ORDER.map(s => ({ s, disabled: s !== formData.status && checkStatusDisabled(s, formData.status, formData) })), [formData])
+  const opt = (arr: string[]) => arr.map(v => ({ label: v, value: v }))
+  const val = (v: string) => v ? { label: v, value: v } : null
+  const isEdit = !!editingProgram
+
   return (
-    <div className="modal-overlay form-modal-overlay">
-      <div className="modal form-modal">
-        <button onClick={onClose} style={{position:'absolute', top:16, right:16, background:'none', border:'none', fontSize:20, cursor:'pointer', color:'var(--text-faint)'}}>✕</button>
-        
-        <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid var(--border)' }}>
-          <h2 style={{marginTop:0, marginBottom:16, fontSize:18, fontWeight:600}}>{editingProgram ? 'แก้ไขรายการ' : 'เพิ่มรายการใหม่'}</h2>
-          
-          {/* Step Indicators */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            {[1, 2, 3].map(s => (
-              <div key={s} style={{
-                flex: 1, height: 4, borderRadius: 2,
-                background: s <= step ? 'var(--text)' : 'var(--surface-3)',
-                transition: 'background 0.3s ease'
-              }} />
-            ))}
+    <div className="overlay" onMouseDown={e => { if (e.target === e.currentTarget) tryClose() }}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="form-title">
+        <div className="dialog-head">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 id="form-title">{isEdit ? 'แก้ไขรายการ' : 'เพิ่มรายการใหม่'}</h2>
+            {isEdit && <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{formData.university}{formData.major ? ` / ${formData.major}` : ''}</div>}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 8, fontWeight: 600 }}>
-            <span>1. ข้อมูลหลัก</span>
-            <span>2. กำหนดการ</span>
-            <span>3. รายละเอียด</span>
-          </div>
+          <button className="btn btn-ghost btn-icon" onClick={tryClose} aria-label="ปิด"><X size={20} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
-          
-          {/* STEP 1 */}
+        <div className="steps" role="tablist">
+          {STEPS.map((name, i) => {
+            const s = i + 1
+            return (
+              <button key={s} type="button" role="tab" aria-selected={step === s} className="step-tab"
+                data-state={s === step ? 'current' : s < step ? 'done' : 'todo'} onClick={() => goStep(s)}>
+                <div className="bar" />{s}. {name}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="dialog-body" ref={bodyRef}>
           {step === 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeIn 0.3s ease' }}>
-              
-              <div style={{ zIndex: 104 }}>
-                <label style={lbl}>มหาวิทยาลัย *</label>
-                <CreatableSelect
-                  isClearable
-                  placeholder="เช่น จุฬาลงกรณ์มหาวิทยาลัย"
-                  options={suggestions.universities.map(u => ({ label: u, value: u }))}
-                  value={formData.university ? { label: formData.university, value: formData.university } : null}
-                  onChange={(val: any) => updateFields({ university: val ? val.value : '' })}
-                  styles={selectStyles}
-                  formatCreateLabel={(val) => `เพิ่ม "${val}"`}
-                />
-              </div>
-              
-              <div style={{ zIndex: 103 }}>
-                <label style={lbl}>โลโก้มหาวิทยาลัย (ถ้ามี)</label>
-                <input type="file" accept="image/*" onChange={e => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    const reader = new FileReader()
-                    reader.onloadend = () => {
-                      updateFields({logoUrl: reader.result as string})
-                    }
-                    reader.readAsDataURL(file)
-                  }
-                }} style={{...inp, padding: '6px'}} />
-                {formData.logoUrl && (
-                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <img src={formData.logoUrl} alt="Logo Preview" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8, background: '#fff', border: '1px solid var(--border)' }} />
-                    <button type="button" onClick={() => updateFields({logoUrl: ''})} style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: 0 }}>ลบรูป</button>
+            <div>
+              <div className="fsec">
+                <div className="fgrid">
+                  <div className="field field-full">
+                    <label className="label" htmlFor="f-uni">มหาวิทยาลัย <span className="req">*</span></label>
+                    <CreatableSelect inputId="f-uni" {...rsProps} placeholder="พิมพ์ชื่อ เช่น มหาวิทยาลัยขอนแก่น"
+                      options={opt(suggestions.universities)} value={val(formData.university)}
+                      onChange={(v: any) => update({ university: v ? v.value : '' })} />
                   </div>
+                  <div className="field">
+                    <label className="label" htmlFor="f-fac">คณะ <span className="req">*</span></label>
+                    <CreatableSelect inputId="f-fac" {...rsProps} placeholder="เช่น วิศวกรรมศาสตร์"
+                      options={opt(suggestions.faculties)} value={val(formData.faculty)}
+                      onChange={(v: any) => update({ faculty: v ? v.value : '' })} />
+                  </div>
+                  <div className="field">
+                    <label className="label" htmlFor="f-major">สาขา</label>
+                    <CreatableSelect inputId="f-major" {...rsProps} placeholder="เช่น วิศวกรรมคอมพิวเตอร์"
+                      options={opt(suggestions.majors)} value={val(formData.major)}
+                      onChange={(v: any) => update({ major: v ? v.value : '' })} />
+                  </div>
+                  <div className="field field-full">
+                    <label className="label" htmlFor="f-cur">หลักสูตร <span className="opt">ไม่บังคับ</span></label>
+                    <CreatableSelect inputId="f-cur" {...rsProps} placeholder="เช่น ภาคปกติ, นานาชาติ"
+                      options={opt(suggestions.curriculums)} value={val(formData.curriculum)}
+                      onChange={(v: any) => update({ curriculum: v ? v.value : '' })} />
+                  </div>
+                  <div className="field">
+                    <label className="label" htmlFor="f-round">รอบ / โครงการ</label>
+                    <input id="f-round" className="input" value={formData.round} onChange={e => update({ round: e.target.value })} placeholder="เช่น รอบ 1 Portfolio" />
+                  </div>
+                  <div className="field">
+                    <label className="label" htmlFor="f-status">สถานะ</label>
+                    <select id="f-status" className="input" value={formData.status} onChange={e => update({ status: e.target.value })}>
+                      {statusOptions.map(({ s, disabled }) => <option key={s} value={s} disabled={disabled}>{s}{disabled ? ' (ยังไม่ถึงกำหนด)' : ''}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="fsec">
+                <div className="fsec-title">ส่ง Portfolio ผ่าน</div>
+                <div className="choice-group" role="radiogroup">
+                  <label className="choice">
+                    <input type="radio" name="portType" checked={!formData.tcasFolio && !formData.customSystem} onChange={() => update({ tcasFolio: false, customSystem: false, submissionSystem: '' })} />
+                    <b>ส่งไฟล์ปกติ</b><span>อัปโหลด PDF ตอนสมัคร</span>
+                  </label>
+                  <label className="choice">
+                    <input type="radio" name="portType" checked={formData.tcasFolio} onChange={() => update({ tcasFolio: true, customSystem: false, submissionSystem: '' })} />
+                    <b>TCASFolio</b><span>ระบบส่วนกลางของ ทปอ.</span>
+                  </label>
+                  <label className="choice">
+                    <input type="radio" name="portType" checked={formData.customSystem} onChange={() => update({ tcasFolio: false, customSystem: true, submissionSystem: '' })} />
+                    <b>ระบบของมหาวิทยาลัย</b><span>ระบุชื่อหรือลิงก์</span>
+                  </label>
+                </div>
+                {formData.customSystem && (
+                  <input className="input" style={{ marginTop: 8 }} value={formData.submissionSystem} onChange={e => update({ submissionSystem: e.target.value })} placeholder="ชื่อระบบ หรือ URL" autoFocus />
                 )}
               </div>
-              
-              <div style={{display:'flex', gap:10, zIndex: 103}}>
-                <div style={{flex:1}}>
-                  <label style={lbl}>คณะ *</label>
-                  <CreatableSelect
-                    isClearable
-                    placeholder="ค้นหาหรือพิมพ์ชื่อคณะ"
-                    options={suggestions.faculties.map(f => ({ label: f, value: f }))}
-                    value={formData.faculty ? { label: formData.faculty, value: formData.faculty } : null}
-                    onChange={(val: any) => updateFields({ faculty: val ? val.value : '' })}
-                    styles={selectStyles}
-                    formatCreateLabel={(val) => `เพิ่ม "${val}"`}
-                  />
-                </div>
-                <div style={{flex:1}}>
-                  <label style={lbl}>สาขา</label>
-                  <CreatableSelect
-                    isClearable
-                    placeholder="ค้นหาหรือพิมพ์ชื่อสาขา"
-                    options={suggestions.majors.map(m => ({ label: m, value: m }))}
-                    value={formData.major ? { label: formData.major, value: formData.major } : null}
-                    onChange={(val: any) => updateFields({ major: val ? val.value : '' })}
-                    styles={selectStyles}
-                    formatCreateLabel={(val) => `เพิ่ม "${val}"`}
-                  />
-                </div>
-              </div>
 
-              <div style={{ zIndex: 102 }}>
-                <label style={lbl}>หลักสูตร</label>
-                <CreatableSelect
-                  isClearable
-                  placeholder="เช่น นานาชาติ, ภาคพิเศษ"
-                  options={suggestions.curriculums.map(c => ({ label: c, value: c }))}
-                  value={formData.curriculum ? { label: formData.curriculum, value: formData.curriculum } : null}
-                  onChange={(val: any) => updateFields({ curriculum: val ? val.value : '' })}
-                  styles={selectStyles}
-                  formatCreateLabel={(val) => `เพิ่ม "${val}"`}
-                />
-              </div>
-              <div style={{display:'flex', gap:10}}>
-                <div style={{flex:1}}><label style={lbl}>รอบที่สมัคร</label><input value={formData.round} onChange={e => updateFields({round: e.target.value})} style={inp} placeholder="เช่น 1 Portfolio" /></div>
-                <div style={{flex:1}}><label style={lbl}>สถานะ</label>
-                  <select value={formData.status} onChange={e => updateFields({status: e.target.value})} style={inp}>
-                    {STATUS_ORDER.map(s => {
-                      const disabled = checkStatusDisabled(s, formData.status, formData);
-                      return <option key={s} value={s} disabled={disabled} style={{ color: disabled ? 'var(--text-faint)' : 'var(--text)', background: 'var(--bg)' }}>{s}</option>
-                    })}
-                  </select>
-                </div>
-              </div>
-              <div style={{ zIndex: 101, marginTop: 4 }}>
-                <label style={lbl}>ระบบที่ใช้อัปโหลด Portfolio</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', padding: '10px 12px', background: (!formData.tcasFolio && !formData.customSystem) ? 'var(--surface-3)' : 'var(--surface-2)', borderRadius: 8, border: (!formData.tcasFolio && !formData.customSystem) ? '1px solid var(--text)' : '1px solid transparent'}}>
-                    <input type="radio" name="portType" checked={!formData.tcasFolio && !formData.customSystem} onChange={() => updateFields({tcasFolio: false, customSystem: false, submissionSystem: ''})} style={{accentColor:'var(--text)', width:16, height:16}} />
-                    ส่ง Portfolio ปกติ
-                  </label>
-                  <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', padding: '10px 12px', background: formData.tcasFolio ? 'var(--surface-3)' : 'var(--surface-2)', borderRadius: 8, border: formData.tcasFolio ? '1px solid var(--text)' : '1px solid transparent'}}>
-                    <input type="radio" name="portType" checked={formData.tcasFolio} onChange={() => updateFields({tcasFolio: true, customSystem: false, submissionSystem: ''})} style={{accentColor:'var(--text)', width:16, height:16}} />
-                    ระบบ TCASFolio (ส่วนกลาง)
-                  </label>
-                  <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', padding: '10px 12px', background: formData.customSystem ? 'var(--surface-3)' : 'var(--surface-2)', borderRadius: 8, border: formData.customSystem ? '1px solid var(--text)' : '1px solid transparent'}}>
-                    <input type="radio" name="portType" checked={formData.customSystem} onChange={() => updateFields({tcasFolio: false, customSystem: true, submissionSystem: ''})} style={{accentColor:'var(--text)', width:16, height:16}} />
-                    ระบบเฉพาะของมหาวิทยาลัย
-                  </label>
-                  {formData.customSystem && (
-                    <input value={formData.submissionSystem} onChange={(e: any) => updateFields({submissionSystem: e.target.value})} style={{...inp, marginTop: -4}} placeholder="ระบุชื่อของระบบ หรือ URL" autoFocus />
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2 */}
-          {step === 2 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease' }}>
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
-                <div><label style={lbl}>เปิดรับสมัคร</label><ThaiDatePicker selected={formData.openDate} onChange={d => {
-                  const openStr = formatDateObj(d)
-                  const closeStr = formatDateObj(formData.closeDate)
-                  const nextStatus = resolveAutoStatus({
-                    status: formData.status,
-                    openDate: openStr,
-                    closeDate: closeStr,
-                    interviewDate: formatDateObj(formData.interviewDate),
-                    resultDate: formatDateObj(formData.resultDate)
-                  })
-                  updateFields({ openDate: d, status: nextStatus })
-                }} style={inp} placeholderText="เลือกวัน" /></div>
-                <div><label style={lbl}>ปิดรับสมัคร</label><ThaiDatePicker selected={formData.closeDate} onChange={d => {
-                  const openStr = formatDateObj(formData.openDate)
-                  const closeStr = formatDateObj(d)
-                  const nextStatus = resolveAutoStatus({
-                    status: formData.status,
-                    openDate: openStr,
-                    closeDate: closeStr,
-                    interviewDate: formatDateObj(formData.interviewDate),
-                    resultDate: formatDateObj(formData.resultDate)
-                  })
-                  updateFields({ closeDate: d, status: nextStatus })
-                }} style={inp} placeholderText="เลือกวัน" /></div>
-                <div><label style={lbl}>ประกาศมีสิทธิ์สัมภาษณ์</label><ThaiDatePicker selected={formData.interviewEligibleDate} onChange={(d: any) => updateFields({interviewEligibleDate: d})} style={inp} placeholderText="เลือกวัน" /></div>
-                <div><label style={{...lbl, color:'#6366f1'}}><Calendar size={12} style={{display:'inline', marginBottom:-2}} /> ประกาศผล</label><ThaiDatePicker selected={formData.resultDate} onChange={d => {
-                  const nextStatus = resolveAutoStatus({
-                    status: formData.status,
-                    openDate: formatDateObj(formData.openDate),
-                    closeDate: formatDateObj(formData.closeDate),
-                    interviewDate: formatDateObj(formData.interviewDate),
-                    resultDate: formatDateObj(d)
-                  })
-                  updateFields({ resultDate: d, status: nextStatus })
-                }} style={{...inp, borderColor:'#6366f133'}} placeholderText="เลือกวัน" /></div>
-                <div><label style={{...lbl, color:'#f59e0b'}}><Calendar size={12} style={{display:'inline', marginBottom:-2}} /> วันสัมภาษณ์</label><ThaiDatePicker selected={formData.interviewDate} onChange={d => {
-                  const nextStatus = resolveAutoStatus({
-                    status: formData.status,
-                    openDate: formatDateObj(formData.openDate),
-                    closeDate: formatDateObj(formData.closeDate),
-                    interviewDate: formatDateObj(d),
-                    resultDate: formatDateObj(formData.resultDate)
-                  })
-                  updateFields({ interviewDate: d, status: nextStatus })
-                }} style={{...inp, borderColor:'#f59e0b33'}} placeholderText="เลือกวัน" /></div>
-                <div><label style={{...lbl, color:'#10b981'}}><Check size={12} style={{display:'inline', marginBottom:-2}} /> หมดเขตยืนยันสิทธิ์</label><ThaiDatePicker selected={formData.confirmationDate} onChange={d => updateFields({confirmationDate: d})} style={{...inp, borderColor:'#10b98133'}} placeholderText="เลือกวัน" /></div>
-              </div>
-
-              <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
-                <div><label style={lbl}>รูปแบบสัมภาษณ์</label>
-                  <select value={formData.interviewFormat} onChange={e => updateFields({interviewFormat: e.target.value})} style={inp}>
-                    <option value="">ยังไม่ระบุ</option>
-                    <option value="onsite">Onsite (มาด้วยตนเอง)</option>
-                    <option value="online">Online</option>
-                  </select>
-                </div>
-                <div><label style={lbl}>สถานที่ / ลิงก์</label><input value={formData.interviewPlace} onChange={e => updateFields({interviewPlace: e.target.value})} style={inp} placeholder="ตึก / ห้อง / MS Teams" /></div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3 */}
-          {step === 3 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'fadeIn 0.3s ease' }}>
-              <div>
-                <label style={lbl}>เกณฑ์ขั้นต่ำ (Requirements)</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
-                  {formData.requirements.map((req: any, i: number) => (
-                    <div key={i} style={{ display: 'flex', gap: 8 }}>
-                      <input 
-                        value={req.label} 
-                        onChange={e => {
-                          const newReqs = [...formData.requirements]
-                          newReqs[i] = { ...newReqs[i], label: e.target.value }
-                          updateFields({ requirements: newReqs })
-                        }} 
-                        style={{ ...inp, flex: 1, padding: '6px 10px' }} 
-                        placeholder="เช่น GPAX ขั้นต่ำ, หน่วยกิต" 
-                      />
-                      <input 
-                        value={req.value} 
-                        onChange={e => {
-                          const newReqs = [...formData.requirements]
-                          newReqs[i] = { ...newReqs[i], value: e.target.value }
-                          updateFields({ requirements: newReqs })
-                        }} 
-                        style={{ ...inp, flex: 1, padding: '6px 10px' }} 
-                        placeholder="รายละเอียด" 
-                      />
-                      <button type="button" onClick={() => {
-                        const newReqs = formData.requirements.filter((_: any, idx: number) => idx !== i)
-                        updateFields({ requirements: newReqs })
-                      }} style={{ padding: '0 12px', background: 'var(--surface-3)', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'var(--danger)', fontSize: 16 }}>
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <button type="button" onClick={() => {
-                  updateFields({ requirements: [...formData.requirements, { label: '', value: '' }] })
-                }} style={{ padding: '8px 12px', fontSize: 13, background: 'var(--surface-3)', color: 'var(--text)', border: '1px dashed var(--border)', borderRadius: 8, cursor: 'pointer', fontWeight: 600, width: '100%', textAlign: 'center', marginBottom: 16 }}>
-                  + เพิ่มเกณฑ์ขั้นต่ำ
-                </button>
-              </div>
-              <div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
-                  {formData.criteriaItems.map((item: any, i: number) => (
-                    <div key={item.id || i} style={{ display: 'flex', gap: 8 }}>
-                      <input 
-                        value={item.label} 
-                        onChange={e => {
-                          const newItems = [...formData.criteriaItems]
-                          newItems[i] = { ...newItems[i], label: e.target.value }
-                          updateFields({ criteriaItems: newItems })
-                        }} 
-                        style={{ ...inp, flex: 1, padding: '6px 10px' }} 
-                        placeholder="เช่น Portfolio, GPAX, สัมภาษณ์" 
-                      />
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '110px' }}>
-                        <input 
-                          type="number"
-                          value={item.pct} 
-                          onChange={e => {
-                            const newItems = [...formData.criteriaItems]
-                            newItems[i] = { ...newItems[i], pct: e.target.value }
-                            updateFields({ criteriaItems: newItems })
-                          }} 
-                          style={{ ...inp, flex: 1, padding: '6px 10px', textAlign: 'center' }} 
-                          placeholder="%" 
-                        />
-                        <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 600 }}>%</span>
-                      </div>
-                      <button type="button" onClick={() => {
-                        const newItems = formData.criteriaItems.filter((_: any, idx: number) => idx !== i)
-                        updateFields({ criteriaItems: newItems })
-                      }} style={{ padding: '0 12px', background: 'var(--surface-3)', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'var(--danger)', fontSize: 16 }}>
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <button type="button" onClick={() => {
-                  updateFields({ criteriaItems: [...formData.criteriaItems, { id: Date.now().toString() + Math.random().toString(), label: '', pct: '' }] })
-                }} style={{ padding: '8px 12px', fontSize: 13, background: 'var(--surface-3)', color: 'var(--text)', border: '1px dashed var(--border)', borderRadius: 8, cursor: 'pointer', fontWeight: 600, width: '100%', textAlign: 'center' }}>
-                  + เพิ่มเกณฑ์
-                </button>
-              </div>
-              <div><label style={lbl}>ลิงก์ประกาศฉบับเต็ม (URL)</label><input type="text" value={formData.link} onChange={e => updateFields({link: e.target.value})} placeholder="https://..." style={inp} /></div>
-              <div><label style={lbl}>ลิงก์ระบบ Admission มหาวิทยาลัย (ถ้ามี)</label><input type="text" value={formData.admissionLink} onChange={e => updateFields({admissionLink: e.target.value})} placeholder="https://..." style={inp} /></div>
-              
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, alignItems:'end', marginTop: 4}}>
-                <div><label style={lbl}>ค่าสมัคร (บาท)</label><input type="number" inputMode="decimal" min={0} value={formData.applicationFee} onChange={e => updateFields({applicationFee: e.target.value})} placeholder="เช่น 300" style={inp} /></div>
-                <label style={{display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', paddingBottom:9}}>
-                  <input type="checkbox" checked={formData.feePaid} onChange={e => updateFields({feePaid: e.target.checked})} style={{accentColor:'var(--text)', width:15, height:15}} />
-                  จ่ายค่าสมัครแล้ว
+              <div className="fsec">
+                <div className="fsec-title">โลโก้มหาวิทยาลัย <small>ใช้ร่วมกันทุกคณะของมหาวิทยาลัยเดียวกัน</small></div>
+                <label className="logo-drop">
+                  <div className="thumb">{formData.logoUrl ? <img src={formData.logoUrl} alt="" /> : <ImagePlus size={20} />}</div>
+                  <div className="txt">{formData.logoUrl ? 'เปลี่ยนรูป' : 'เลือกรูปโลโก้'}<small>ถ้าไม่ใส่ ระบบจะหาโลโก้จากเว็บมหาวิทยาลัยให้</small></div>
+                  {formData.logoUrl && <button type="button" className="btn btn-sm btn-ghost" style={{ color: 'var(--danger)' }} onClick={e => { e.preventDefault(); update({ logoUrl: '' }) }}>ลบรูป</button>}
+                  <input type="file" accept="image/*" className="sr-only" onChange={async e => {
+                    const file = e.target.files?.[0]
+                    if (file) update({ logoUrl: await shrinkImage(file) })
+                    e.target.value = ''
+                  }} />
                 </label>
               </div>
+            </div>
+          )}
 
-              <div>
-                <label style={lbl}>เอกสารที่ต้องใช้</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
-                  {formData.documents.map((doc: any, i: number) => (
-                    <div key={doc.id || i} style={{ display: 'flex', gap: 8 }}>
-                      <input 
-                        value={doc.text} 
-                        onChange={e => {
-                          const newDocs = [...formData.documents]
-                          newDocs[i] = { ...newDocs[i], text: e.target.value }
-                          updateFields({ documents: newDocs })
-                        }} 
-                        style={{ ...inp, flex: 1, padding: '6px 10px' }} 
-                        placeholder="เช่น Portfolio 10 หน้า" 
-                      />
-                      <button type="button" onClick={() => {
-                        const newDocs = formData.documents.filter((_: any, idx: number) => idx !== i)
-                        updateFields({ documents: newDocs })
-                      }} style={{ padding: '0 12px', background: 'var(--surface-3)', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'var(--danger)', fontSize: 16 }}>
-                        ✕
-                      </button>
+          {step === 2 && (
+            <div>
+              <div className="fsec">
+                <div className="fsec-title">ช่วงรับสมัคร</div>
+                <div className="fgrid">
+                  <div className="field"><label className="label" htmlFor="d-open"><Dot c="var(--ev-open)" /> เปิดรับสมัคร</label><ThaiDatePicker id="d-open" selected={formData.openDate} onChange={d => setDate('openDate', d)} /></div>
+                  <div className="field"><label className="label" htmlFor="d-close"><Dot c="var(--ev-close)" /> ปิดรับสมัคร</label><ThaiDatePicker id="d-close" selected={formData.closeDate} onChange={d => setDate('closeDate', d)} /></div>
+                </div>
+              </div>
+              <div className="fsec">
+                <div className="fsec-title">หลังปิดรับสมัคร</div>
+                <div className="fgrid">
+                  <div className="field"><label className="label" htmlFor="d-elig"><Dot c="var(--ev-eligible)" /> ประกาศมีสิทธิ์สัมภาษณ์</label><ThaiDatePicker id="d-elig" selected={formData.interviewEligibleDate} onChange={d => setDate('interviewEligibleDate', d)} /></div>
+                  <div className="field"><label className="label" htmlFor="d-int"><Dot c="var(--ev-interview)" /> วันสัมภาษณ์</label><ThaiDatePicker id="d-int" selected={formData.interviewDate} onChange={d => setDate('interviewDate', d)} /></div>
+                  <div className="field"><label className="label" htmlFor="d-res"><Dot c="var(--ev-result)" /> ประกาศผล</label><ThaiDatePicker id="d-res" selected={formData.resultDate} onChange={d => setDate('resultDate', d)} /></div>
+                  <div className="field"><label className="label" htmlFor="d-conf"><Dot c="var(--ev-confirm)" /> หมดเขตยืนยันสิทธิ์</label><ThaiDatePicker id="d-conf" selected={formData.confirmationDate} onChange={d => setDate('confirmationDate', d)} /></div>
+                </div>
+              </div>
+              <div className="fsec">
+                <div className="fsec-title">การสัมภาษณ์</div>
+                <div className="fgrid">
+                  <div className="field">
+                    <label className="label" htmlFor="f-ifmt">รูปแบบ</label>
+                    <select id="f-ifmt" className="input" value={formData.interviewFormat} onChange={e => update({ interviewFormat: e.target.value })}>
+                      <option value="">ยังไม่ทราบ</option>
+                      <option value="onsite">Onsite (ไปที่มหาวิทยาลัย)</option>
+                      <option value="online">Online</option>
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label className="label" htmlFor="f-iplace">สถานที่ / ลิงก์</label>
+                    <input id="f-iplace" className="input" value={formData.interviewPlace} onChange={e => update({ interviewPlace: e.target.value })} placeholder="ตึก ห้อง หรือลิงก์ประชุม" />
+                  </div>
+                </div>
+              </div>
+              <p className="hint" style={{ marginTop: 16 }}>สถานะจะเปลี่ยนเองตามวันที่ เช่น ถึงวันเปิดรับแล้วจะกลายเป็น &quot;รอยื่นสมัคร&quot;</p>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div>
+              <div className="fsec">
+                <div className="fsec-title">
+                  สัดส่วนคะแนน
+                  {formData.criteriaItems.length > 0 && <span className="sum-meter" data-ok={critSum === 100}>รวม {critSum}%</span>}
+                </div>
+                <div className="rows">
+                  {formData.criteriaItems.map((it: any, i: number) => (
+                    <div key={it.id || i} className="row-edit">
+                      <input className="input" value={it.label} onChange={e => updateList('criteriaItems', i, { label: e.target.value })} placeholder="เช่น Portfolio" aria-label="ชื่อเกณฑ์" />
+                      <div className="input-affix" style={{ width: 110, flexShrink: 0 }}>
+                        <input className="input" type="number" inputMode="decimal" value={it.pct} onChange={e => updateList('criteriaItems', i, { pct: e.target.value })} placeholder="0" aria-label="ร้อยละ" style={{ height: 38 }} />
+                        <span>%</span>
+                      </div>
+                      <button type="button" className="row-del" onClick={() => removeFrom('criteriaItems', i)} aria-label="ลบเกณฑ์"><Trash2 size={15} /></button>
                     </div>
                   ))}
                 </div>
-                <button type="button" onClick={() => {
-                  updateFields({ documents: [...formData.documents, { id: Date.now().toString() + Math.random().toString(), text: '', done: false }] })
-                }} style={{ padding: '8px 12px', fontSize: 13, background: 'var(--surface-3)', color: 'var(--text)', border: '1px dashed var(--border)', borderRadius: 8, cursor: 'pointer', fontWeight: 600, width: '100%', textAlign: 'center' }}>
-                  + เพิ่มเอกสาร
-                </button>
+                <div className="suggest">
+                  {CRIT_SUGGESTIONS.filter(s => !formData.criteriaItems.some((c: any) => c.label === s)).map(s => (
+                    <button key={s} type="button" onClick={() => update({ criteriaItems: [...formData.criteriaItems, { id: uid(), label: s, pct: '' }] })}>+ {s}</button>
+                  ))}
+                  <button type="button" onClick={() => update({ criteriaItems: [...formData.criteriaItems, { id: uid(), label: '', pct: '' }] })}>+ อื่น ๆ</button>
+                </div>
               </div>
 
-              <div><label style={lbl}>บันทึกส่วนตัว</label><textarea value={formData.note} onChange={e => updateFields({note: e.target.value})} rows={4} style={{...inp, resize:'vertical'}} placeholder="โน้ตเพิ่มเติมสิ่งที่ต้องเตรียม หรือสิ่งที่ต้องระวัง" /></div>
+              <div className="fsec">
+                <div className="fsec-title">คุณสมบัติขั้นต่ำ</div>
+                <div className="rows">
+                  {formData.requirements.map((r: any, i: number) => (
+                    <div key={i} className="row-edit">
+                      <input className="input" value={r.label} onChange={e => updateList('requirements', i, { label: e.target.value })} placeholder="เช่น GPAX ขั้นต่ำ" aria-label="หัวข้อ" />
+                      <input className="input" value={r.value} onChange={e => updateList('requirements', i, { value: e.target.value })} placeholder="เช่น 3.00" aria-label="ค่า" />
+                      <button type="button" className="row-del" onClick={() => removeFrom('requirements', i)} aria-label="ลบ"><Trash2 size={15} /></button>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" className="add-row" onClick={() => update({ requirements: [...formData.requirements, { label: '', value: '' }] })}><Plus size={14} /> เพิ่มคุณสมบัติ</button>
+              </div>
+
+              <div className="fsec">
+                <div className="fsec-title">เอกสารที่ต้องเตรียม</div>
+                <div className="rows">
+                  {formData.documents.map((d: any, i: number) => (
+                    <div key={d.id || i} className="row-edit">
+                      <input className="input" value={d.text} onChange={e => updateList('documents', i, { text: e.target.value })} placeholder="ชื่อเอกสาร" aria-label="ชื่อเอกสาร" />
+                      <button type="button" className="row-del" onClick={() => removeFrom('documents', i)} aria-label="ลบเอกสาร"><Trash2 size={15} /></button>
+                    </div>
+                  ))}
+                </div>
+                <div className="suggest">
+                  {DOC_SUGGESTIONS.filter(s => !formData.documents.some((d: any) => d.text === s)).map(s => (
+                    <button key={s} type="button" onClick={() => update({ documents: [...formData.documents, { id: uid(), text: s, done: false }] })}>+ {s}</button>
+                  ))}
+                  <button type="button" onClick={() => update({ documents: [...formData.documents, { id: uid(), text: '', done: false }] })}>+ อื่น ๆ</button>
+                </div>
+              </div>
+
+              <div className="fsec">
+                <div className="fsec-title">ค่าสมัคร</div>
+                <div className="fgrid" style={{ alignItems: 'center' }}>
+                  <div className="input-affix">
+                    <input className="input" type="number" inputMode="decimal" min={0} value={formData.applicationFee} onChange={e => update({ applicationFee: e.target.value })} placeholder="เช่น 500" aria-label="ค่าสมัคร" />
+                    <span>บาท</span>
+                  </div>
+                  <label className="toggle"><input type="checkbox" checked={formData.feePaid} onChange={e => update({ feePaid: e.target.checked })} /> จ่ายแล้ว</label>
+                </div>
+              </div>
+
+              <div className="fsec">
+                <div className="fsec-title">ลิงก์</div>
+                <div className="fgrid">
+                  <div className="field"><label className="label" htmlFor="f-link">ประกาศฉบับเต็ม</label><input id="f-link" className="input" value={formData.link} onChange={e => update({ link: e.target.value })} placeholder="https://" /></div>
+                  <div className="field"><label className="label" htmlFor="f-adm">ระบบรับสมัคร <span className="opt">ถ้าว่าง ใช้ลิงก์มาตรฐาน</span></label><input id="f-adm" className="input" value={formData.admissionLink} onChange={e => update({ admissionLink: e.target.value })} placeholder="https://" /></div>
+                </div>
+              </div>
+
+              <div className="fsec">
+                <label className="fsec-title" htmlFor="f-note">บันทึกส่วนตัว</label>
+                <textarea id="f-note" className="input" rows={4} value={formData.note} onChange={e => update({ note: e.target.value })} placeholder="คำถามสัมภาษณ์ที่คาดว่าจะเจอ สิ่งที่ต้องถามครูแนะแนว ฯลฯ" />
+              </div>
             </div>
           )}
-        </form>
+        </div>
 
-        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', background: 'var(--surface)' }}>
-          <button type="button" onClick={() => step > 1 ? setStep(step - 1) : onClose()} style={{padding:'10px 20px', borderRadius:8, border:'1px solid var(--border)', background:'transparent', fontWeight:600, cursor:'pointer', fontSize:14}}>
+        <div className="dialog-foot">
+          <button type="button" className="btn btn-ghost" onClick={() => step > 1 ? setStep(step - 1) : tryClose()}>
             {step === 1 ? 'ยกเลิก' : 'ย้อนกลับ'}
           </button>
-          
-          {step < 3 ? (
-            <button type="button" onClick={() => {
-              // Basic validation before next
-              if (step === 1 && (!formData.university || !formData.faculty)) {
-                toast.error('กรุณากรอกมหาวิทยาลัยและคณะ')
-                return
-              }
-              setStep(step + 1)
-            }} style={{padding:'10px 24px', borderRadius:8, border:'none', background:'var(--text)', color:'var(--bg)', fontWeight:600, cursor:'pointer', fontSize:14}}>
-              ถัดไป
-            </button>
-          ) : (
-            <button type="button" onClick={handleSubmit} style={{padding:'10px 24px', borderRadius:8, border:'none', background:'#10b981', color:'#fff', fontWeight:600, cursor:'pointer', fontSize:14}}>
-              บันทึกข้อมูล
+          <div style={{ flex: 1 }} />
+          {step < 3 && (
+            <button type="button" className={`btn ${isEdit ? '' : 'btn-primary'}`} onClick={() => goStep(step + 1)}>ถัดไป</button>
+          )}
+          {(isEdit || step === 3) && (
+            <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
+              {saving ? 'กำลังบันทึก…' : isEdit ? 'บันทึกการแก้ไข' : 'เพิ่มรายการ'}
             </button>
           )}
         </div>
       </div>
     </div>
   )
+}
+
+function Dot({ c }: { c: string }) {
+  return <span style={{ width: 8, height: 8, borderRadius: '50%', background: c, display: 'inline-block' }} />
 }

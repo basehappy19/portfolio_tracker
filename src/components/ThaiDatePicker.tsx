@@ -3,6 +3,7 @@
 import React, { forwardRef } from 'react'
 import DatePicker, { registerLocale } from 'react-datepicker'
 import { th } from 'date-fns/locale/th'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import 'react-datepicker/dist/react-datepicker.css'
 
 registerLocale('th', th)
@@ -11,87 +12,51 @@ interface ThaiDatePickerProps {
   selected: Date | null
   onChange: (date: Date | null) => void
   placeholderText?: string
-  style?: React.CSSProperties
-  className?: string
   id?: string
-  name?: string
 }
 
-// Custom input to inject our styles from the parent
-const CustomInput = forwardRef<HTMLInputElement, any>(({ value, onClick, onChange, style, className, placeholder, id, name }, ref) => {
-  // Extract only the Thai date parts if a value is present (DD/MM/YYYY)
-  let displayValue = value
-  if (value) {
-    const parts = value.split('/')
-    if (parts.length === 3) {
-      const year = parseInt(parts[2], 10)
-      if (year < 2500) {
-        displayValue = `${parts[0]}/${parts[1]}/${year + 543}`
-      }
-    }
-  }
+const THAI_MONTHS_FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+const THAI_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 
-  return (
-    <input
-      ref={ref}
-      id={id}
-      name={name}
-      className={className}
-      style={style}
-      onClick={onClick}
-      onChange={onChange}
-      value={displayValue}
-      placeholder={placeholder}
-      autoComplete="off"
-    />
-  )
-})
+// แสดงวันที่แบบอ่านง่าย "14 ก.ย. 2569" แทน dd/MM/yyyy
+const CustomInput = forwardRef<HTMLInputElement, any>(({ onClick, placeholder, id, selectedDate }, ref) => (
+  <input
+    ref={ref}
+    id={id}
+    className="input"
+    onClick={onClick}
+    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.() } }}
+    readOnly
+    value={selectedDate ? `${selectedDate.getDate()} ${THAI_MONTHS[selectedDate.getMonth()]} ${selectedDate.getFullYear() + 543}` : ''}
+    placeholder={placeholder}
+    autoComplete="off"
+    style={{ cursor: 'pointer', paddingRight: 36 }}
+  />
+))
 CustomInput.displayName = 'CustomInput'
 
-export default function ThaiDatePicker({ selected, onChange, placeholderText, style, className, id, name }: ThaiDatePickerProps) {
+export default function ThaiDatePicker({ selected, onChange, placeholderText = 'เลือกวัน', id }: ThaiDatePickerProps) {
   return (
-    <DatePicker
-      selected={selected}
-      onChange={onChange}
-      locale="th"
-      dateFormat="dd/MM/yyyy"
-      placeholderText={placeholderText}
-      wrapperClassName="w-full"
-      customInput={<CustomInput style={style} className={className} id={id} name={name} />}
-      renderCustomHeader={({
-        date,
-        changeYear,
-        changeMonth,
-        decreaseMonth,
-        increaseMonth,
-        prevMonthButtonDisabled,
-        nextMonthButtonDisabled,
-      }) => {
-        const thaiYear = date.getFullYear() + 543
-        const monthName = th.localize?.month(date.getMonth() as any, { width: 'wide' })
-
-        return (
-          <div style={{ margin: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <button
-              onClick={(e) => { e.preventDefault(); decreaseMonth(); }}
-              disabled={prevMonthButtonDisabled}
-              style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}
-            >
-              {'<'}
-            </button>
-            <div style={{ fontWeight: 'bold' }}>
-              {monthName} {thaiYear}
-            </div>
-            <button
-              onClick={(e) => { e.preventDefault(); increaseMonth(); }}
-              disabled={nextMonthButtonDisabled}
-              style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16 }}
-            >
-              {'>'}
-            </button>
+    <div className="date-wrap">
+      <DatePicker
+        selected={selected}
+        onChange={(d: Date | null) => onChange(d)}
+        locale="th"
+        placeholderText={placeholderText}
+        wrapperClassName="w-full"
+        popperPlacement="bottom-start"
+        customInput={<CustomInput id={id} selectedDate={selected} />}
+        renderCustomHeader={({ date, decreaseMonth, increaseMonth }) => (
+          <div className="dp-head">
+            <button type="button" onClick={e => { e.preventDefault(); decreaseMonth() }} aria-label="เดือนก่อนหน้า"><ChevronLeft size={16} /></button>
+            <b>{THAI_MONTHS_FULL[date.getMonth()]} {date.getFullYear() + 543}</b>
+            <button type="button" onClick={e => { e.preventDefault(); increaseMonth() }} aria-label="เดือนถัดไป"><ChevronRight size={16} /></button>
           </div>
-        )
-      }}
-    />
+        )}
+      />
+      {selected && (
+        <button type="button" className="date-clear" onClick={() => onChange(null)} aria-label="ล้างวันที่"><X size={14} /></button>
+      )}
+    </div>
   )
 }

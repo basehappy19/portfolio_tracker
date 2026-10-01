@@ -7,10 +7,10 @@ export const dynamic = 'force-dynamic'
 
 export default async function Page() {
   const programs = await getPrograms()
-  
+
   return (
     <PinGate>
-      <Suspense fallback={<div style={{ padding: 32, textAlign: 'center' }}>กำลังโหลด...</div>}>
+      <Suspense fallback={<div className="loading-screen">กำลังโหลดรายการ…</div>}>
         <TrackerApp initialPrograms={programs} />
       </Suspense>
     </PinGate>

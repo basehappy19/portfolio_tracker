@@ -6,9 +6,9 @@ export const dynamic = 'force-dynamic'
 
 export default async function GuestPage() {
   const programs = await getPrograms()
-  
+
   return (
-    <Suspense fallback={<div style={{ padding: 32, textAlign: 'center' }}>กำลังโหลด...</div>}>
+    <Suspense fallback={<div className="loading-screen">กำลังโหลดรายการ…</div>}>
       <TrackerApp initialPrograms={programs} readOnly />
     </Suspense>
   )
