@@ -163,12 +163,23 @@ export function checkStatusDisabled(targetStatus: string, currentStatus: string,
   if (targetStatus === 'ไม่ผ่านการคัดเลือก') {
     if (isBefore(closeD)) return true;
   }
+  if (targetStatus === 'ไม่ไปสัมภาษณ์') {
+    if (currentStatus === 'รอประกาศเกณฑ์' || currentStatus === 'ยังไม่เปิดรับสมัคร' || currentStatus === 'รอยื่นสมัคร') return true;
+    if (currentStatus !== 'ติดสัมภาษณ์') {
+      if (intEligibleD) {
+        if (isBefore(intEligibleD)) return true;
+      } else if (closeD) {
+        if (isBefore(closeD)) return true;
+      }
+    }
+  }
 
   // Prevent reverting logic from previous simple logic
   if (currentStatus === 'ยื่นสมัครแล้ว' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร')) return true;
   if (currentStatus === 'ติดสัมภาษณ์' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร' || targetStatus === 'ยื่นสมัครแล้ว')) return true;
   if (currentStatus === 'รอประกาศผล' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร' || targetStatus === 'ยื่นสมัครแล้ว' || targetStatus === 'ติดสัมภาษณ์')) return true;
   if (currentStatus === 'ยืนยันสิทธิ์แล้ว' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร' || targetStatus === 'ยื่นสมัครแล้ว' || targetStatus === 'ติดสัมภาษณ์' || targetStatus === 'รอประกาศผล')) return true;
+  if (currentStatus === 'ไม่ไปสัมภาษณ์' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร' || targetStatus === 'ยื่นสมัครแล้ว' || targetStatus === 'ติดสัมภาษณ์' || targetStatus === 'รอประกาศผล')) return true;
 
   return false;
 }

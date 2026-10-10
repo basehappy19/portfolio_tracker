@@ -1,11 +1,11 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { AlertTriangle, Check, ChevronDown, Edit2, ExternalLink, Building2, MoreHorizontal, Star, Trash2, Wallet, Globe, MapPin } from 'lucide-react'
 import { STATUS_META, STATUS_ORDER, INTERVIEW_FORMAT_LABEL } from '@/lib/constants'
 import { checkStatusDisabled, formatDate, isFullDate } from '@/lib/utils'
 import { getAdmissionUrl, getUniColor } from '@/lib/university'
-import { getStub, getMilestones, getNextStatus, parseCriteria, STATUS_DOT } from '@/lib/insights'
+import { getStub, getMilestones, getNextStatus, parseCriteria, STATUS_DOT, TERMINAL_STATUSES } from '@/lib/insights'
 import UniversityLogo from './UniversityLogo'
 import Popover from './Popover'
 
@@ -33,11 +33,12 @@ export function StatusPill({ status }: { status: string }) {
   return <span className="status-pill" data-tone={tone}><span className="dot" />{status}</span>
 }
 
-function StatusMenu({ p, onChange }: { p: any; onChange: (s: string) => void }) {
+function StatusMenu({ p, onChange, onOpenChange }: { p: any; onChange: (s: string) => void; onOpenChange?: (open: boolean) => void }) {
   const tone = STATUS_META[p.status]?.color || 'neutral'
   return (
     <Popover
       width={250}
+      onOpenChange={onOpenChange}
       trigger={({ toggle, ref, open }) => (
         <button ref={ref} type="button" className="status-pill" data-tone={tone} onClick={toggle} aria-haspopup="menu" aria-expanded={open} title="เปลี่ยนสถานะ">
           <span className="dot" />{p.status}<ChevronDown size={13} strokeWidth={2.5} />
@@ -106,18 +107,30 @@ type Props = {
 }
 
 function ProgramCard({ p, readOnly, alert, expanded, flash, onToggleExpand, onStar, onEdit, onDelete, onStatus, onFeePaid, onToggleDoc }: Props) {
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false)
+  const [actionMenuOpen, setActionMenuOpen] = useState(false)
+  const hasOpenMenu = statusMenuOpen || actionMenuOpen
+
   const stub = getStub(p)
   const docsTotal = p.documents?.length || 0
   const docsDone = p.documents?.filter((d: any) => d.done).length || 0
   const nextStatus = readOnly ? null : getNextStatus(p)
-  const isDone = ['ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'สละสิทธิ์'].includes(p.status)
+  const isDone = TERMINAL_STATUSES.includes(p.status)
   const feeDue = p.applicationFee > 0 && !p.feePaid
   const requirements = Array.isArray(p.requirements) ? p.requirements.filter((r: any) => r?.label) : []
   const system = p.tcasFolio ? 'TCASFolio' : p.submissionSystem
 
   return (
-    <article id={`program-${p.id}`} className="ticket" data-flash={flash ? 'true' : undefined} data-done={isDone ? 'true' : undefined}
-      style={{ ['--uni' as any]: getUniColor(p.university) }}>
+    <article
+      id={`program-${p.id}`}
+      className={`ticket ${hasOpenMenu ? 'has-open-menu' : ''}`}
+      data-flash={flash ? 'true' : undefined}
+      data-done={isDone ? 'true' : undefined}
+      style={{
+        ['--uni' as any]: getUniColor(p.university),
+        ...(hasOpenMenu ? { zIndex: 35, opacity: 1 } : {}),
+      }}
+    >
       <div className="stub" data-tone={stub.tone} data-hot={stub.hot ? 'true' : undefined}>
         {stub.num != null ? (
           <>
@@ -151,7 +164,7 @@ function ProgramCard({ p, readOnly, alert, expanded, flash, onToggleExpand, onSt
                 <Star size={14} fill={p.priority > 0 ? 'currentColor' : 'none'} strokeWidth={2.2} />
                 {p.priority > 0 && <span className="num">{p.priority}</span>}
               </button>
-              <Popover align="right" width={210} trigger={({ toggle, ref, open }) => (
+              <Popover align="right" width={210} onOpenChange={setActionMenuOpen} trigger={({ toggle, ref, open }) => (
                 <button ref={ref} className="btn btn-ghost btn-sm btn-icon" onClick={toggle} aria-label="ตัวเลือกเพิ่มเติม" aria-expanded={open}><MoreHorizontal size={18} /></button>
               )}>
                 {close => (
@@ -169,7 +182,7 @@ function ProgramCard({ p, readOnly, alert, expanded, flash, onToggleExpand, onSt
         </div>
 
         <div className="tags">
-          {readOnly ? <StatusPill status={p.status} /> : <StatusMenu p={p} onChange={s => onStatus(p.id, s)} />}
+          {readOnly ? <StatusPill status={p.status} /> : <StatusMenu p={p} onChange={s => onStatus(p.id, s)} onOpenChange={setStatusMenuOpen} />}
           {p.round && <span className="tag" title={p.round}>{p.round}</span>}
           {system && <span className="tag" data-tone="accent">ส่งผ่าน {system}</span>}
           {p.applicationFee > 0 && !readOnly && (feeDue ? (

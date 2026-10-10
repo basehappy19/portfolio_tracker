@@ -216,6 +216,7 @@ kbd {
   position: absolute; z-index: 60; min-width: 220px; padding: 6px; border-radius: 12px;
   background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-pop);
   animation: pop .14s ease-out both;
+  max-height: min(420px, calc(100vh - 80px)); overflow-y: auto;
 }
 .menu-item {
   width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
@@ -322,6 +323,15 @@ kbd {
 .ticket[data-flash="true"] { animation: flash 1.6s ease; }
 @keyframes flash { 0%, 40% { box-shadow: 0 0 0 4px var(--highlight); } 100% { box-shadow: var(--shadow-1); } }
 .ticket[data-done="true"] { opacity: .78; }
+.ticket:has(.menu),
+.ticket.has-open-menu {
+  z-index: 35;
+  opacity: 1 !important;
+}
+.ticket[data-done="true"]:has(.menu),
+.ticket[data-done="true"].has-open-menu {
+  opacity: 1;
+}
 
 /* stub = ต้นขั้วนับถอยหลัง */
 .stub {

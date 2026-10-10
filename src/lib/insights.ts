@@ -1,8 +1,8 @@
 import { STATUS_META, NEXT_STATUS, THAI_MONTHS } from './constants'
 import { computeUrgency, daysUntil, formatDate, isFullDate, isMonthYear, todayISO, checkStatusDisabled } from './utils'
 
-export const TERMINAL_STATUSES = ['ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'สละสิทธิ์']
-export const APPLIED_STATUSES = ['ยื่นสมัครแล้ว', 'ติดสัมภาษณ์', 'รอประกาศผล', 'ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'สละสิทธิ์']
+export const TERMINAL_STATUSES = ['ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'ไม่ไปสัมภาษณ์', 'สละสิทธิ์']
+export const APPLIED_STATUSES = ['ยื่นสมัครแล้ว', 'ติดสัมภาษณ์', 'รอประกาศผล', 'ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'ไม่ไปสัมภาษณ์', 'สละสิทธิ์']
 export const INTERVIEWED_STATUSES = ['ติดสัมภาษณ์', 'รอประกาศผล', 'ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'สละสิทธิ์']
 const NOT_APPLIED = ['รอประกาศเกณฑ์', 'ยังไม่เปิดรับสมัคร', 'รอยื่นสมัคร']
 
@@ -88,7 +88,7 @@ export function shortDate(raw: string): string {
 /* ---------------- next-step quick action ---------------- */
 export function getNextStatus(p: any): string | null {
   // เสนอเฉพาะขั้นถัดไปเชิงบวก — ผลลบ (ไม่ผ่าน/สละสิทธิ์) ให้เลือกจากเมนูสถานะเอง
-  const options = (NEXT_STATUS[p.status] || []).filter(s => s !== 'ไม่ผ่านการคัดเลือก' && s !== 'สละสิทธิ์')
+  const options = (NEXT_STATUS[p.status] || []).filter(s => s !== 'ไม่ผ่านการคัดเลือก' && s !== 'สละสิทธิ์' && s !== 'ไม่ไปสัมภาษณ์')
   return options.find(s => !checkStatusDisabled(s, p.status, p)) || null
 }
 
@@ -101,7 +101,7 @@ export function buildAgenda(programs: any[], windowDays = 21): AgendaItem[] {
   const toneFor = (d: number) => (d <= 3 ? 'danger' : d <= 7 ? 'warn' : 'neutral') as AgendaItem['tone']
 
   for (const p of programs) {
-    if (p.status === 'ไม่ผ่านการคัดเลือก' || p.status === 'สละสิทธิ์') continue
+    if (p.status === 'ไม่ผ่านการคัดเลือก' || p.status === 'สละสิทธิ์' || p.status === 'ไม่ไปสัมภาษณ์') continue
     const push = (field: string, what: string, extra: Partial<AgendaItem> = {}) => {
       const raw = p[field]
       if (!isFullDate(raw)) return
@@ -202,7 +202,7 @@ export function exportICS(programs: any[]) {
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TCAS Tracker//TH', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:TCAS Tracker']
   let count = 0
   for (const p of programs) {
-    if (p.status === 'ไม่ผ่านการคัดเลือก' || p.status === 'สละสิทธิ์') continue
+    if (p.status === 'ไม่ผ่านการคัดเลือก' || p.status === 'สละสิทธิ์' || p.status === 'ไม่ไปสัมภาษณ์') continue
     for (const e of EVENT_KINDS) {
       const raw = p[e.field]
       if (!isFullDate(raw)) continue
