@@ -36,10 +36,14 @@ export default function UniversityLogo({ university, logoUrl, size = 40 }: { uni
     </div>
   )
 
+  const isFullBleed = src === '/kmutt.png'
+
   return (
     <div style={{
-      width: size, height: size, borderRadius: radius, flexShrink: 0, background: '#fff', overflow: 'hidden',
-      boxShadow: `inset 0 0 0 1px var(--border)`, display: 'grid', placeItems: 'center', padding: Math.round(size * 0.1),
+      width: size, height: size, borderRadius: radius, flexShrink: 0,
+      background: isFullBleed ? '#e64011' : '#fff', overflow: 'hidden',
+      boxShadow: `inset 0 0 0 1px var(--border)`, display: 'grid', placeItems: 'center',
+      padding: isFullBleed ? 0 : Math.round(size * 0.1),
     }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -49,7 +53,7 @@ export default function UniversityLogo({ university, logoUrl, size = 40 }: { uni
         alt=""
         title={university}
         width={size} height={size}
-        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        style={{ width: '100%', height: '100%', minWidth: 0, minHeight: 0, display: 'block', objectFit: isFullBleed ? 'cover' : 'contain' }}
         onError={() => setImgError(true)}
       />
     </div>

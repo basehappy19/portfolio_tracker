@@ -416,7 +416,6 @@ export default function TrackerApp({ initialPrograms, readOnly = false }: { init
               <div className="result-line">
                 <span>
                   {filtersActive ? `ตรงเงื่อนไข ${filteredPrograms.length} จาก ${programs.length} รายการ` : `กำลังดำเนินการ ${activePrograms.length} รายการ`}
-                  {completedPrograms.length > 0 && filtersActive ? ` (จบแล้ว ${completedPrograms.length})` : ''}
                 </span>
                 {filtersActive && <button className="linkish" onClick={clearFilters}>ล้างตัวกรอง</button>}
               </div>
@@ -436,12 +435,16 @@ export default function TrackerApp({ initialPrograms, readOnly = false }: { init
                 <p>ลองเปลี่ยนคำค้น หรือเอาตัวกรองบางอันออก</p>
                 <button className="btn" onClick={clearFilters}>ล้างตัวกรองทั้งหมด</button>
               </div>
+            ) : filtersActive ? (
+              <div className="card-list">
+                {filteredPrograms.map(renderCard)}
+              </div>
             ) : (
               <>
                 <div className="card-list">
                   {activePrograms.map(renderCard)}
                   {activePrograms.length === 0 && (
-                    <div className="empty" style={{ padding: 28 }}><p style={{ margin: 0 }}>ไม่มีรายการที่กำลังดำเนินการในตัวกรองนี้</p></div>
+                    <div className="empty" style={{ padding: 28 }}><p style={{ margin: 0 }}>ไม่มีรายการที่กำลังดำเนินการ</p></div>
                   )}
                 </div>
                 {completedPrograms.length > 0 && (
