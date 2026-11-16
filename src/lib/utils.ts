@@ -77,9 +77,9 @@ export function computeUrgency(p: any) {
   if (diffDays < 0) {
     // If closed, cascade to the next upcoming event
     const events = [
-      { date: p.interviewEligibleDate, name: 'ประกาศมีสิทธิ์สัมภาษณ์', type: 'interviewEligible', today: 'ประกาศมีสิทธิ์สัมภาษณ์วันนี้', skip: p.status === 'ติดสัมภาษณ์' || p.status === 'รอประกาศผล' || p.status === 'ยืนยันสิทธิ์แล้ว' },
-      { date: p.interviewDate, name: 'วันสัมภาษณ์', type: 'interview', today: 'สัมภาษณ์วันนี้', skip: p.status === 'รอประกาศผล' || p.status === 'ยืนยันสิทธิ์แล้ว' },
-      { date: p.resultDate, name: 'วันประกาศผล', type: 'result', today: 'ประกาศผลวันนี้', skip: p.status === 'ยืนยันสิทธิ์แล้ว' },
+      { date: p.interviewEligibleDate, name: 'ประกาศมีสิทธิ์สัมภาษณ์', type: 'interviewEligible', today: 'ประกาศมีสิทธิ์สัมภาษณ์วันนี้', skip: p.status === 'ติดสัมภาษณ์' || p.status === 'รอประกาศผล' || p.status === 'ผ่านการคัดเลือก' },
+      { date: p.interviewDate, name: 'วันสัมภาษณ์', type: 'interview', today: 'สัมภาษณ์วันนี้', skip: p.status === 'รอประกาศผล' || p.status === 'ผ่านการคัดเลือก' },
+      { date: p.resultDate, name: 'วันประกาศผล', type: 'result', today: 'ประกาศผลวันนี้', skip: p.status === 'ผ่านการคัดเลือก' },
       { date: p.confirmationDate, name: 'หมดเขตยืนยันสิทธิ์', type: 'confirmation', today: 'หมดเขตยืนยันสิทธิ์วันนี้' }
     ]
     for (const evt of events) {
@@ -153,7 +153,7 @@ export function checkStatusDisabled(targetStatus: string, currentStatus: string,
       if (isBefore(closeD)) return true;
     }
   }
-  if (targetStatus === 'ยืนยันสิทธิ์แล้ว') {
+  if (targetStatus === 'ผ่านการคัดเลือก') {
     if (resultD) {
       if (isBefore(resultD)) return true;
     } else {
@@ -178,7 +178,7 @@ export function checkStatusDisabled(targetStatus: string, currentStatus: string,
   if (currentStatus === 'ยื่นสมัครแล้ว' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร')) return true;
   if (currentStatus === 'ติดสัมภาษณ์' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร' || targetStatus === 'ยื่นสมัครแล้ว')) return true;
   if (currentStatus === 'รอประกาศผล' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร' || targetStatus === 'ยื่นสมัครแล้ว' || targetStatus === 'ติดสัมภาษณ์')) return true;
-  if (currentStatus === 'ยืนยันสิทธิ์แล้ว' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร' || targetStatus === 'ยื่นสมัครแล้ว' || targetStatus === 'ติดสัมภาษณ์' || targetStatus === 'รอประกาศผล')) return true;
+  if (currentStatus === 'ผ่านการคัดเลือก' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร' || targetStatus === 'ยื่นสมัครแล้ว' || targetStatus === 'ติดสัมภาษณ์' || targetStatus === 'รอประกาศผล')) return true;
   if (currentStatus === 'ไม่ไปสัมภาษณ์' && (targetStatus === 'ยังไม่เปิดรับสมัคร' || targetStatus === 'รอยื่นสมัคร' || targetStatus === 'ยื่นสมัครแล้ว' || targetStatus === 'ติดสัมภาษณ์' || targetStatus === 'รอประกาศผล')) return true;
 
   return false;
@@ -193,6 +193,10 @@ export function resolveAutoStatus(p: {
 }): string {
   const today = todayISO()
   const { status, openDate, closeDate, interviewDate, resultDate } = p
+
+  if (status === 'ยืนยันสิทธิ์แล้ว' || status === 'ยืนยันสิทธิ์' || status === 'ผ่านคัดเลือก') {
+    return 'ผ่านการคัดเลือก'
+  }
 
   // ถ้าเป็น "ยังไม่เปิดรับสมัคร" หรือ "รอประกาศเกณฑ์"
   if (status === 'ยังไม่เปิดรับสมัคร' || status === 'รอประกาศเกณฑ์') {

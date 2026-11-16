@@ -18,7 +18,7 @@ export default function Overview({ programs, onJump }: { programs: any[]; onJump
   const total = programs.length
   const applied = programs.filter(p => APPLIED_STATUSES.includes(p.status)).length
   const interviewed = programs.filter(p => INTERVIEWED_STATUSES.includes(p.status)).length
-  const selected = programs.filter(p => p.status === 'ยืนยันสิทธิ์แล้ว' || p.status === 'สละสิทธิ์').length
+  const selected = programs.filter(p => p.status === 'ผ่านการคัดเลือก' || p.status === 'สละสิทธิ์').length
   const pipeline = [
     { k: 'all', label: 'ติดตามอยู่', n: total },
     { k: 'applied', label: 'ยื่นสมัครแล้ว', n: applied },

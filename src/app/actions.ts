@@ -39,6 +39,7 @@ export async function getPrograms() {
   }
   if (updates.length > 0) {
     await Promise.all(updates)
+    await cleanupOrphans()
   }
 
   return programs.map((p: any) => ({
@@ -234,6 +235,7 @@ async function cleanupOrphans() {
   await prisma.major.deleteMany({ where: { programs: { none: {} } } })
   await prisma.curriculum.deleteMany({ where: { programs: { none: {} } } })
   await prisma.round.deleteMany({ where: { programs: { none: {} } } })
+  await prisma.status.deleteMany({ where: { programs: { none: {} } } })
 }
 
 export async function toggleDocument(docId: string, done: boolean) {

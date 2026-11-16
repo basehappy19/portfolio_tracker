@@ -1,9 +1,9 @@
 import { STATUS_META, NEXT_STATUS, THAI_MONTHS } from './constants'
 import { computeUrgency, daysUntil, formatDate, isFullDate, isMonthYear, todayISO, checkStatusDisabled } from './utils'
 
-export const TERMINAL_STATUSES = ['ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'ไม่ไปสัมภาษณ์', 'สละสิทธิ์']
-export const APPLIED_STATUSES = ['ยื่นสมัครแล้ว', 'ติดสัมภาษณ์', 'รอประกาศผล', 'ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'ไม่ไปสัมภาษณ์', 'สละสิทธิ์']
-export const INTERVIEWED_STATUSES = ['ติดสัมภาษณ์', 'รอประกาศผล', 'ยืนยันสิทธิ์แล้ว', 'ไม่ผ่านการคัดเลือก', 'สละสิทธิ์']
+export const TERMINAL_STATUSES = ['ผ่านการคัดเลือก', 'ไม่ผ่านการคัดเลือก', 'ไม่ไปสัมภาษณ์', 'สละสิทธิ์']
+export const APPLIED_STATUSES = ['ยื่นสมัครแล้ว', 'ติดสัมภาษณ์', 'รอประกาศผล', 'ผ่านการคัดเลือก', 'ไม่ผ่านการคัดเลือก', 'ไม่ไปสัมภาษณ์', 'สละสิทธิ์']
+export const INTERVIEWED_STATUSES = ['ติดสัมภาษณ์', 'รอประกาศผล', 'ผ่านการคัดเลือก', 'ไม่ผ่านการคัดเลือก', 'สละสิทธิ์']
 const NOT_APPLIED = ['รอประกาศเกณฑ์', 'ยังไม่เปิดรับสมัคร', 'รอยื่นสมัคร']
 
 export const STATUS_DOT: Record<string, string> = {
@@ -34,7 +34,7 @@ export type Stub = { tone: string; hot?: boolean; num?: number; unit?: string; w
 export function getStub(p: any): Stub {
   const u: any = computeUrgency(p)
   if (u.mode === 'terminal') {
-    return { tone: p.status === 'ยืนยันสิทธิ์แล้ว' ? 'success' : p.status === 'ไม่ผ่านการคัดเลือก' ? 'danger' : 'neutral', text: p.status }
+    return { tone: p.status === 'ผ่านการคัดเลือก' ? 'success' : p.status === 'ไม่ผ่านการคัดเลือก' ? 'danger' : 'neutral', text: p.status }
   }
   if (u.mode === 'notOpen' && isFullDate(p.openDate)) {
     return { tone: 'neutral', num: daysUntil(p.openDate), unit: 'วัน', what: 'ก่อนเปิดรับสมัคร' }
@@ -117,7 +117,7 @@ export function buildAgenda(programs: any[], windowDays = 21): AgendaItem[] {
       push('closeDate', 'ปิดรับสมัคร ยื่นให้ทัน', notes ? { tag: notes, tagTone: 'warn' } : {})
       if (p.status !== 'รอยื่นสมัคร') push('openDate', 'เปิดรับสมัคร', {})
     }
-    if (p.status !== 'ยืนยันสิทธิ์แล้ว') {
+    if (p.status !== 'ผ่านการคัดเลือก') {
       if (!['ติดสัมภาษณ์', 'รอประกาศผล'].includes(p.status)) push('interviewEligibleDate', 'ประกาศรายชื่อมีสิทธิ์สัมภาษณ์')
       if (p.status !== 'รอประกาศผล') {
         const fmt = p.interviewFormat === 'online' ? 'Online' : p.interviewFormat === 'onsite' ? 'Onsite' : undefined
